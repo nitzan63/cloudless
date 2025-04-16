@@ -1,0 +1,128 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# High-Level Architecture for Distributed Compute Sharing System
+
+This project, named "cloudless" is a school project, in the making.
+
+In this file you can find the Abstract Idea and High level architecture of the project. Here will be the goals of the project, and the idea of the design, but will probably be changed in the making.
+
+# Abstract Idea:
+
+1. What is the problem you are trying to solve?
+The increasing demand for computational power often exceeds the resources available to individuals or small organizations. This leads to the underutilization of idle computational resources, such as unused CPU and RAM, in personal devices. Centralized cloud solutions are expensive, lack privacy, and have latency issues due to geographical limitations. There is a need for a decentralized, cost-effective, and secure platform to share computational resources efficiently.
+
+2. How do you intend to approach the problem?
+We propose a decentralized peer-to-peer compute sharing system that:
+
+Connects Providers and Consumers: Allows users to share idle computational resources and run tasks on these shared resources.
+Ensures Security and Trust: Tasks will be executed in isolated environments to maintain data security and protect providers.
+Implements Fair Compensation: Introduces a community-based credit system for resource usage and contributions.
+Optimizes Performance: Uses P2P network algorithms to match users efficiently, minimizing latency and maximizing utilization.
+
+5. What will be the main features and flows of the (different) user(s)?
+
+Compute Providers:
+Features:
+Specify available resources (e.g., CPU cores, RAM size).
+Monitor resource usage and earnings in credits.
+Earn credits for contributing computational power.
+Flow:
+Register and set up their device for sharing.
+Specify resource allocation preferences.
+Accumulate credits as their resources are utilized.
+
+Compute Consumers:
+Features:
+Submit tasks and specify resource requirements.
+Monitor task progress and resource consumption.
+Spend credits to access computational resources.
+Flow:
+Register and submit computational tasks.
+Use initial credits to run tasks.
+Earn additional credits by contributing resources or purchase credits to continue using the platform.
+
+# High level design
+
+High-Level Architecture for Distributed Compute Sharing System
+1️⃣ System Main Components
+The system consists of four main modules:
+1. Main Server (Manager)
+Cloud-hosted server managing authentication, database management, and matchmaking between providers and consumers.
+Manages job queues and results retrieval.
+Interfaces with Apache Spark for job orchestration.
+Stores metadata of jobs and system users.
+Uses AWS S3 (Blob Storage) for storing job input/output data.
+2. Spark Server (Task Orchestrator)
+Responsible for submitting tasks to available compute providers.
+Distributes workloads efficiently using Apache Spark.
+Monitors task execution and ensures fault tolerance.
+3. Compute Provider (Agent)
+Runs the actual computations inside Docker containers.
+Installed as an application on the provider's computer.
+Listens for task requests from the Spark Server.
+Executes the tasks while respecting CPU and memory limits.
+Reports task status and results back to the Main Server.
+Provides a simple UI for monitoring and controlling task execution.
+4. Consumer (Task Submitter)
+Allows users to submit tasks for remote execution.
+Connects with the Main Server to view results.
+Uses REST API/WebSockets for communication.
+Simple web interface.
+5. Storage System (AWS S3 / Any other Storage)
+Stores task input data, results, and logs.
+Provides a shared and persistent storage layer.
+
+2️⃣ User Use Cases (Sequence Diagrams)
+Use Case 1: Submitting a Task (Consumer Perspective)
+Consumer submits a task via REST API (Python script + resource constraints).
+Main Server authenticates the user and stores metadata in the database.
+Main Server forwards the task to Spark Server.
+Spark Server assigns the job to an available Compute Provider.
+Compute Provider executes the task inside a Docker container.
+Compute Provider uploads results to AWS S3.
+Spark Server updates the Main Server with task completion status.
+Consumer retrieves results from AWS S3.
+
+Use Case 2: Provider Registering and Listening for Jobs
+Provider installs the agent and registers with the Main Server.
+Main Server authenticates and stores provider metadata.
+Provider starts listening for incoming tasks.
+Spark Server sends jobs to the Provider when available.
+Provider executes jobs and uploads results to AWS S3.
+
+
+3️⃣ Back-End Technology Choices
+Core Technologies:
+Component
+Technology
+Justification
+Main Server
+FastAPI (Python) + PostgreSQL
+Lightweight, async, and database-friendly.
+Cloud Host
+AWS
+Host main server
+Task Orchestration
+Apache Spark
+Handles distributed job execution efficiently.
+Compute Providers
+Docker
+Isolated task execution with resource control.
+Storage
+AWS S3 (Blob Storage)
+Cloud storage for job inputs/outputs.
+
+
+4️⃣ Front-End Technology Choices
+1. Provider UI (Task Monitoring & Control Panel)
+PyQt (Python) → Desktop GUI framework that integrates well with system processes and WebSockets.
+2. Consumer UI (Task Submission & Results Viewing)
+Web-based UI (React.js) → Enables easy job submission.
+
+We are not attaching screen drafts because it is not the main focus of our project. We will design the screens after we begin the implementation.
+
+
