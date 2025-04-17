@@ -1,4 +1,4 @@
-from services.storage_service import StorageService
+from server.services.storage.storage_service import StorageService
 import os
 
 def test_storage_service():
