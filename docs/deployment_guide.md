@@ -63,18 +63,18 @@ Instead of using `latest`, you can use specific version tags:
 
 1. Build with version:
 ```bash
-docker build -t nitzan63/cloudless:v1.0.0 .
+docker build -t nitzan63/cloudless:1.1 .
 ```
 
 2. Push with version:
 ```bash
-docker push nitzan63/cloudless:v1.0.0
+docker push nitzan63/cloudless:1.1
 ```
 
 3. Deploy specific version:
 ```bash
 gcloud run deploy cloudless-server \
-  --image nitzan63/cloudless:v1.0.0 \
+  --image nitzan63/cloudless:1.1 \
   --region us-central1 \
   --platform managed \
   --service-account cloudless-sa@beaming-grid-456915-s6.iam.gserviceaccount.com
