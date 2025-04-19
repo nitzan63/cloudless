@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
-from .storage_service import StorageService
+from services.storage.storage_service import StorageService
+from typing import Any
 
 class LocalStorageService(StorageService):
     def __init__(self):
@@ -9,7 +10,7 @@ class LocalStorageService(StorageService):
         self.uploads_path = os.path.join(self.base_path, 'uploads')
         os.makedirs(self.uploads_path, exist_ok=True)
 
-    def upload_file(self, file_content, filename):
+    def upload_file(self, file_content: Any, filename: str) -> dict:
         """Upload any file to local storage"""
         try:
             # Generate unique filename
@@ -31,7 +32,7 @@ class LocalStorageService(StorageService):
                 'message': str(e)
             }
 
-    def delete_file(self, file_path):
+    def delete_file(self, file_path: str) -> dict:
         """Delete a file from local storage"""
         try:
             full_path = os.path.join(self.base_path, file_path)

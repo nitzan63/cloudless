@@ -1,7 +1,8 @@
 from google.cloud import storage
 import os
 from datetime import datetime
-from .storage_service import StorageService
+from services.storage.storage_service import StorageService
+from typing import Any
 
 class GoogleStorageService(StorageService):
     def __init__(self):
@@ -12,7 +13,7 @@ class GoogleStorageService(StorageService):
         self.bucket = self.client.bucket(self.bucket_name)
         self.bucket.reload()
 
-    def upload_file(self, file_content, filename):
+    def upload_file(self, file_content: Any, filename: str) -> dict:
         """Upload any file to GCS"""
         try:
             # Generate a unique filename with timestamp
@@ -34,7 +35,7 @@ class GoogleStorageService(StorageService):
                 'message': str(e)
             }
             
-    def delete_file(self, file_path):
+    def delete_file(self, file_path: str) -> dict:
         """Delete a file from GCS"""
         try:
             blob = self.bucket.blob(file_path)
