@@ -4,7 +4,7 @@ import sys
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from services.task_service import TaskService
-from services.storage_service import StorageService
+from config import get_storage
 
 # TODO: Ray Integration and System Improvements
 # 1. Ray Connectivity
@@ -40,7 +40,7 @@ except ImportError:
     ray_import_success = False
     logging.error("Failed to import Ray package")
 
-from services.storage_service import StorageService
+from config import get_storage
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -69,7 +69,7 @@ else:
     logger.warning("Ray not initialized - either import failed or RAY_ADDRESS not set")
 
 # Initialize services
-storage_service = StorageService()
+storage_service = get_storage()
 task_service = TaskService()
 
 @app.route('/health', methods=['GET'])

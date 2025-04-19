@@ -1,4 +1,4 @@
-from services.storage_service import StorageService
+from server.services.storage.storage_service import StorageService
 
 def delete_test_file():
     storage = StorageService()
