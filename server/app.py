@@ -3,7 +3,7 @@ from flask_cors import CORS
 from services.task_service import TaskService
 import os
 import logging
-from services.storage_service import StorageService
+from config import get_storage
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -13,7 +13,7 @@ app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
 # Initialize storage service
-storage_service = StorageService()
+storage_service = get_storage()
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -85,8 +85,6 @@ def get_task_status(task_id):
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    # Get port from environment variable
     port = int(os.environ.get('PORT', 8080))
     logger.info(f"Starting server on port {port}")
-    logger.info(f"Environment variables: {os.environ}")
     app.run(host='0.0.0.0', port=port, debug=True) 
