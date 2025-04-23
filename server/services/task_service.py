@@ -5,7 +5,7 @@ class TaskService:
     def __init__(self, db):
         self.db = db
 
-    def create_task(self, created_by, requested_workers_amount, script_path, status):
+    def create_task(self, created_by, requested_workers_amount, status, script_path):
         task_id = str(uuid.uuid4())
         creation_time = datetime.utcnow()
         self.db.execute("""

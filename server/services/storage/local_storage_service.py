@@ -6,7 +6,7 @@ from typing import Any
 class LocalStorageService(StorageService):
     def __init__(self):
         # Use an env var or default to `local-storage`
-        self.base_path = os.getenv('LOCAL_STORAGE_PATH', 'server/local-storage')
+        self.base_path = os.path.join(os.path.dirname(__file__), 'local-storage')
         self.uploads_path = os.path.join(self.base_path, 'uploads')
         os.makedirs(self.uploads_path, exist_ok=True)
 
@@ -23,7 +23,7 @@ class LocalStorageService(StorageService):
 
             return {
                 'status': 'success',
-                'file_path': os.path.relpath(full_path, start=self.base_path),
+                'file_path': full_path,
                 'absolute_path': os.path.abspath(full_path),
             }
         except Exception as e:
