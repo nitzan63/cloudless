@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from services.task_service import TaskService
+from db.postgres.postgres_db import PostgresDB
 import os
 import logging
 from config import get_storage
@@ -14,6 +15,8 @@ CORS(app)  # Enable CORS for all routes
 
 # Initialize storage service
 storage_service = get_storage()
+pg_db = PostgresDB()
+task_service = TaskService(pg_db)
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -59,14 +62,9 @@ def submit_task():
     """Submit a new task for execution"""
     try:
         data = request.get_json()
-        
-        # Use service for validation
-        is_valid, error_message = TaskService.validate_task_data(data)
-        if not is_valid:
-            return jsonify({"error": error_message}), 400
             
         # Use service to create task
-        task = TaskService.create_task(data)
+        task = task_service.create_task(**data)
         return jsonify({
             "message": "Task received successfully",
             "task": task
@@ -75,14 +73,27 @@ def submit_task():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @app.route('/api/tasks/<task_id>', methods=['GET'])
-def get_task_status(task_id):
-    """Get the status of a specific task"""
+def get_task(task_id):
+    """Get a task by its ID"""
     try:
-        task_status = TaskService.get_task_status(task_id)
-        return jsonify(task_status), 200
+        task = task_service.get_task(task_id)
+        if task:
+            return jsonify(task), 200
+        else:
+            return jsonify({"error": "Task not found"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# @app.route('/api/tasks/<task_id>', methods=['GET'])
+# def get_task_status(task_id):
+#     """Get the status of a specific task"""
+#     try:
+#         task_status = TaskService.get_task_status(task_id)
+#         return jsonify(task_status), 200
+#     except Exception as e:
+#         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
