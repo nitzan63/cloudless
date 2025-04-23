@@ -29,3 +29,6 @@ run-spark-worker:
 
 run-spark-master:
 	docker run -d --name spark-master -p 7077:7077 -p 7079:7079 -p 7078:7078 -p 8080:8080 -e PYSPARK_PYTHON=python -e SPARK_MODE=master -e SPARK_MASTER_URL=spark://34.134.59.39:7077  bitnami/spark:latest
+
+run-spark-job:
+	bin/spark-submit --conf spark.driver.host=34.134.59.39 --conf spark.driver.port=7078 --conf spark.blockManager.port=7079 --conf spark.driver.bindAddress=0.0.0.0 --master spark://34.134.59.39:7077 /wordcount.py
