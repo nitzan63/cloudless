@@ -2,6 +2,7 @@
 
 set -e
 
+cd ..
 cd server
 
 python3 -m venv venv
