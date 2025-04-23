@@ -1,11 +1,11 @@
-.PHONY: db stop-db server server-set-up migrations run-spark-worker run-spark-master build-spark-worker
+.PHONY: services stop-services server server-set-up migrations run-spark-worker run-spark-master build-spark-worker tast-executor-set-up task-executor
 
 PYTHON = ./server/venv/Scripts/python
 
-db:
+services:
 	docker-compose up -d
 
-stop-db:
+stop-services:
 	docker-compose down
 
 server:
@@ -14,7 +14,16 @@ server:
 server-set-up:
 	cd server && \
 	python -m venv venv && \
-	venv\Scripts\activate.bat && \
+	venv\Scripts\activate && \
+	pip install -r requirements.txt
+
+task-executor:
+	$(PYTHON) ./task_executor/app.py
+
+tast-executor-set-up:
+	cd task_executor && \
+	python -m venv venv && \
+	venv\Scripts\activate && \
 	pip install -r requirements.txt
 
 migrations:

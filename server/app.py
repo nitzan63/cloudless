@@ -1,10 +1,14 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from services.task_service import TaskService
+from services.rabbitmq_service import RabbitMQService
 from db.postgres.postgres_db import PostgresDB
 import os
 import logging
 from config import get_storage
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -17,6 +21,7 @@ CORS(app)  # Enable CORS for all routes
 storage_service = get_storage()
 pg_db = PostgresDB()
 task_service = TaskService(pg_db)
+rabbitmq_service = RabbitMQService()
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -55,6 +60,9 @@ def submit_task():
         task = task_service.create_task(
             data['created_by'], data['requested_workers_amount'], data['status'], result['file_path']
         )
+
+        rabbitmq_service.send_message(task)
+
         return jsonify({
             "message": "Task received successfully",
             "task": task
