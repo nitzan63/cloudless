@@ -1,6 +1,7 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from services.task_service import TaskService
+from db.postgres.postgres_db import PostgresDB
 import os
 import logging
 from config import get_storage
@@ -14,19 +15,21 @@ CORS(app)  # Enable CORS for all routes
 
 # Initialize storage service
 storage_service = get_storage()
+pg_db = PostgresDB()
+task_service = TaskService(pg_db)
 
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
     return jsonify({"status": "healthy"}), 200
 
-@app.route('/api/upload', methods=['POST'])
-def upload_file():
-    """Upload any file"""
-    logger.info("Upload endpoint hit")
-    logger.info(f"Request files: {request.files}")
-    logger.info(f"Request form: {request.form}")
+@app.route('/api/tasks', methods=['POST'])
+def submit_task():
+    """Submit a new task for execution"""
     try:
+        data = request.form.to_dict()
+
+        # File save
         if 'file' not in request.files:
             logger.error("No file in request.files")
             return jsonify({'error': 'No file provided'}), 400
@@ -48,25 +51,10 @@ def upload_file():
             logger.error(f"Upload error: {result['message']}")
             return jsonify({'error': result['message']}), 500
             
-        return jsonify(result), 201
-        
-    except Exception as e:
-        logger.error(f"Upload error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/tasks', methods=['POST'])
-def submit_task():
-    """Submit a new task for execution"""
-    try:
-        data = request.get_json()
-        
-        # Use service for validation
-        is_valid, error_message = TaskService.validate_task_data(data)
-        if not is_valid:
-            return jsonify({"error": error_message}), 400
-            
         # Use service to create task
-        task = TaskService.create_task(data)
+        task = task_service.create_task(
+            data['created_by'], data['requested_workers_amount'], data['status'], result['file_path']
+        )
         return jsonify({
             "message": "Task received successfully",
             "task": task
@@ -75,12 +63,40 @@ def submit_task():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @app.route('/api/tasks/<task_id>', methods=['GET'])
-def get_task_status(task_id):
-    """Get the status of a specific task"""
+def get_task(task_id):
+    """Get a task by its ID"""
     try:
-        task_status = TaskService.get_task_status(task_id)
-        return jsonify(task_status), 200
+        task = task_service.get_task(task_id)
+        if task:
+            return jsonify(task), 200
+        else:
+            return jsonify({"error": "Task not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/tasks', methods=['GET'])
+def get_all_tasks():
+    """Get all tasks"""
+    try:
+        tasks = task_service.list_tasks()
+        if tasks:
+            return jsonify(tasks), 200
+        else:
+            return jsonify({"error": "No tasks"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@app.route('/api/tasks/file/<task_id>', methods=['GET'])
+def get_task_file(task_id):
+    try:
+        task = task_service.get_task(task_id)
+        if task:
+            return send_file(task['script_path'], as_attachment=True)
+        else:
+            return jsonify({"error": "Task not found"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

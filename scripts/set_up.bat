@@ -1,5 +1,6 @@
 @echo off
 
+cd ..
 cd server
 
 python -m venv venv
