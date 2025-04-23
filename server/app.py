@@ -61,7 +61,29 @@ def upload_file():
 def submit_task():
     """Submit a new task for execution"""
     try:
-        data = request.get_json()
+        data = request.form.to_dict()
+
+        # File save
+        if 'file' not in request.files:
+            logger.error("No file in request.files")
+            return jsonify({'error': 'No file provided'}), 400
+            
+        file = request.files['file']
+        if not file.filename:
+            logger.error("No filename in file object")
+            return jsonify({'error': 'No file selected'}), 400
+            
+        # Read file content
+        file_content = file.read()
+        logger.info(f"File content read, size: {len(file_content)} bytes")
+        
+        # Upload to GCS
+        result = storage_service.upload_file(file_content, file.filename)
+        logger.info(f"Upload result: {result}")
+        
+        if result['status'] == 'error':
+            logger.error(f"Upload error: {result['message']}")
+            return jsonify({'error': result['message']}), 500
             
         # Use service to create task
         task = task_service.create_task(**data)
@@ -86,14 +108,18 @@ def get_task(task_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# @app.route('/api/tasks/<task_id>', methods=['GET'])
-# def get_task_status(task_id):
-#     """Get the status of a specific task"""
-#     try:
-#         task_status = TaskService.get_task_status(task_id)
-#         return jsonify(task_status), 200
-#     except Exception as e:
-#         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/tasks', methods=['GET'])
+def get_all_tasks():
+    """Get all tasks"""
+    try:
+        tasks = task_service.list_tasks()
+        if tasks:
+            return jsonify(tasks), 200
+        else:
+            return jsonify({"error": "No tasks"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))

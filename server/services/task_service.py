@@ -15,9 +15,11 @@ class TaskService:
         return task_id
 
     def get_task(self, task_id):
-        rows = self.db.execute("SELECT * FROM task WHERE id = %s", (task_id,))
+        cursor = self.db.conn.cursor()
+        cursor.execute("SELECT * FROM task WHERE id = %s", (task_id,))
+        rows = cursor.fetchall()
         if rows:
-            columns = [desc[0] for desc in self.db.conn.cursor().description]
+            columns = [desc[0] for desc in cursor.description]
             return dict(zip(columns, rows[0]))
         return None
 

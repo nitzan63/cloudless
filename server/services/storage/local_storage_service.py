@@ -6,7 +6,7 @@ from typing import Any
 class LocalStorageService(StorageService):
     def __init__(self):
         # Use an env var or default to `local-storage`
-        self.base_path = os.getenv('LOCAL_STORAGE_PATH', 'local-storage')
+        self.base_path = os.getenv('LOCAL_STORAGE_PATH', 'server/local-storage')
         self.uploads_path = os.path.join(self.base_path, 'uploads')
         os.makedirs(self.uploads_path, exist_ok=True)
 
