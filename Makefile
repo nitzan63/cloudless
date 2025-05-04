@@ -1,6 +1,6 @@
 .PHONY: services stop-services server server-set-up migrations run-spark-worker run-spark-master build-spark-worker tast-executor-set-up task-executor
 
-PYTHON = ./server/venv/Scripts/python
+PYTHON = venv/Scripts/python
 
 services:
 	docker-compose up -d
@@ -9,7 +9,7 @@ stop-services:
 	docker-compose down
 
 server:
-	$(PYTHON) ./server/app.py
+	./server/$(PYTHON) ./server/app.py
 
 server-set-up:
 	cd server && \
@@ -18,7 +18,7 @@ server-set-up:
 	pip install -r requirements.txt
 
 task-executor:
-	$(PYTHON) ./task_executor/app.py
+	./task_executor/$(PYTHON) ./task_executor/app.py
 
 tast-executor-set-up:
 	cd task_executor && \
@@ -27,7 +27,7 @@ tast-executor-set-up:
 	pip install -r requirements.txt
 
 migrations:
-	$(PYTHON) ./server/db/postgres/migrations.py
+	./server/$(PYTHON) ./server/db/postgres/migrations.py
 
 build-spark-worker:
 	cd spark && \

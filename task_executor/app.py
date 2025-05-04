@@ -3,6 +3,11 @@ import time
 import os
 import pika.credentials
 from dotenv import load_dotenv
+import logging
+from process.processor import process
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -22,7 +27,9 @@ channel = connection.channel()
 channel.queue_declare(queue='tasks')
 
 def callback(ch, method, properties, body):
-    print(f" [x] Received {body}")
+    task_id = body.decode('utf-8')
+    logger.info(f"Process task: {task_id}")
+    process(task_id)
 
 channel.basic_consume(
     queue='tasks',
