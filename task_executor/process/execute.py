@@ -1,21 +1,24 @@
-import os
-import asyncio
-from urllib.parse import quote
 from dotenv import load_dotenv
+from services.livy_service import LivyService 
+import requests
+import time
+import uuid
+
 load_dotenv()
-import subprocess
 
 def submit_to_spark(file_path):
-    cmd = (
-        f"docker exec spark-master bin/spark-submit  "
-        f"--conf spark.driver.host={os.environ.get('DRIVER_HOST')} "
-        f"--conf spark.driver.port={os.environ.get('DRIVER_PORT')} "
-        f"--conf spark.blockManager.port={os.environ.get('BLOCK_MANAGER_PORT')} "
-        f"--conf spark.driver.bindAddress={os.environ.get('BIND_ADDRESS')} "
-        f"--master {os.environ.get('SPARK_MASTER')} "
-        f"{file_path}"
-    )
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    print(result.stdout)
-    print(result.stderr)
-    print("DONE")
+    livy_service = LivyService()
+    # TODO: add file name to task metadata and use it like this example below
+    job_id = livy_service.submit_batch("local:/scripts/20250505_194512_wordcount.py", str(uuid.uuid4()))
+    print(f"Start job: {job_id}")
+
+    print("Waiting for batch job to finish...")
+    while True:
+        resp = livy_service.get_batch_status(job_id)
+        state = resp.json()["state"]
+        print(f"  Batch State: {state}")
+        if state in ("success", "dead", "error", "killed"):
+            break
+        time.sleep(2)
+
+    livy_service.get_batch_logs(job_id)

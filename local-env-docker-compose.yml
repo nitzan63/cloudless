@@ -90,7 +90,7 @@ services:
     networks:
       - cloudless-net
     volumes:
-      - C:/Users/aradt/Develop/FinalProjectCS/cloudless/spark/example_jobs:/scripts
+      - C:/Users/aradt/Develop/FinalProjectCS/cloudless/task_executor/files:/scripts
 
 networks:
   cloudless-net:
