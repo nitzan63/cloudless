@@ -38,8 +38,8 @@ services:
   livy:
     image: livy:latest
     build:
-      context: .
-      dockerfile: spark/livy/livy.Dockerfile
+      context: ./spark/livy
+      dockerfile: livy.Dockerfile
     container_name: livy
     environment:
       - SPARK_HOME=/opt/bitnami/spark

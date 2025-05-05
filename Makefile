@@ -6,8 +6,18 @@ services:
 stop-services:
 	docker-compose down
 
+local-env:
+	docker-compose -f local-env-docker-compose.yml up -d --build
+
+stop-local-env:
+	docker-compose -f local-env-docker-compose.yml down
+
 server:
 	./server/$(PYTHON) ./server/app.py
+
+build-server:
+	cd server && \
+	docker build -f Dockerfile -t cloudless-main-server .
 
 server-set-up:
 	cd server && \

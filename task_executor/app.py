@@ -24,7 +24,7 @@ connection = pika.BlockingConnection(
 )
 channel = connection.channel()
 
-channel.queue_declare(queue='tasks')
+channel.queue_declare(queue='tasks', durable=True)
 
 def callback(ch, method, properties, body):
     task_id = body.decode('utf-8')
