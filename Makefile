@@ -1,5 +1,3 @@
-.PHONY: services stop-services server server-set-up migrations run-spark-worker run-spark-master build-spark-worker tast-executor-set-up task-executor
-
 PYTHON = venv/Scripts/python
 
 services:

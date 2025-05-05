@@ -4,6 +4,16 @@ from datetime import datetime
 class TaskService:
     def __init__(self, db):
         self.db = db
+        self.db.execute("""
+            CREATE TABLE IF NOT EXISTS task (
+                id TEXT PRIMARY KEY,
+                creation_time TIMESTAMP NOT NULL,
+                created_by TEXT NOT NULL,
+                requested_workers_amount INTEGER NOT NULL,
+                script_path TEXT NOT NULL,
+                status TEXT NOT NULL
+            );
+        """)
 
     def create_task(self, created_by, requested_workers_amount, status, script_path):
         task_id = str(uuid.uuid4())

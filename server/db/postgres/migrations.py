@@ -2,7 +2,6 @@ from postgres_db import PostgresDB
 
 if __name__ == "__main__":
     db = PostgresDB()
-    db.execute("DROP TABLE IF EXISTS task;")
     db.execute("""
         CREATE TABLE IF NOT EXISTS task (
             id TEXT PRIMARY KEY,
