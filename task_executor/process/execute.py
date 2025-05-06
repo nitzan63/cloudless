@@ -6,10 +6,10 @@ import uuid
 
 load_dotenv()
 
-def submit_to_spark(file_path):
+def submit_to_spark(file_name):
     livy_service = LivyService()
-    # TODO: add file name to task metadata and use it like this example below
-    job_id = livy_service.submit_batch("local:/scripts/20250505_194512_wordcount.py", str(uuid.uuid4()))
+    job_name = str(uuid.uuid4())
+    job_id = livy_service.submit_batch(f"local:/scripts/{file_name}", job_name)
     print(f"Start job: {job_id}")
 
     print("Waiting for batch job to finish...")

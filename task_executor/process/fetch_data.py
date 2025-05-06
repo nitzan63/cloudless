@@ -25,4 +25,4 @@ def fetch_task(task_id):
     else:
         file_path = None
 
-    return task_data, file_path
+    return task_data

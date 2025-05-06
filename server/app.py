@@ -58,7 +58,7 @@ def submit_task():
             
         # Use service to create task
         task = task_service.create_task(
-            data['created_by'], data['requested_workers_amount'], data['status'], result['file_path']
+            data['created_by'], data['requested_workers_amount'], data['status'], result['file_path'], result['file_name']
         )
 
         rabbitmq_service.send_message(task)
@@ -109,6 +109,6 @@ def get_task_file(task_id):
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))
+    port = int(os.environ.get('PORT', 8000))
     logger.info(f"Starting server on port {port}")
     app.run(host='0.0.0.0', port=port, debug=True) 
