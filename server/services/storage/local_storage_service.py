@@ -24,6 +24,7 @@ class LocalStorageService(StorageService):
             return {
                 'status': 'success',
                 'file_path': full_path,
+                'file_name': unique_filename,
                 'absolute_path': os.path.abspath(full_path),
             }
         except Exception as e:

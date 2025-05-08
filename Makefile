@@ -1,24 +1,41 @@
-.PHONY: db stop-db server server-set-up migrations run-spark-worker run-spark-master build-spark-worker
+PYTHON = venv/Scripts/python
 
-PYTHON = ./server/venv/Scripts/python
-
-db:
+services:
 	docker-compose up -d
 
-stop-db:
+stop-services:
 	docker-compose down
 
+local-env:
+	docker-compose -f local-env-docker-compose.yml up -d --build
+
+stop-local-env:
+	docker-compose -f local-env-docker-compose.yml down
+
 server:
-	$(PYTHON) ./server/app.py
+	./server/$(PYTHON) ./server/app.py
+
+build-server:
+	cd server && \
+	docker build -f Dockerfile -t cloudless-main-server .
 
 server-set-up:
 	cd server && \
 	python -m venv venv && \
-	venv\Scripts\activate.bat && \
+	venv\Scripts\activate && \
+	pip install -r requirements.txt
+
+task-executor:
+	./task_executor/$(PYTHON) ./task_executor/app.py
+
+tast-executor-set-up:
+	cd task_executor && \
+	python -m venv venv && \
+	venv\Scripts\activate && \
 	pip install -r requirements.txt
 
 migrations:
-	$(PYTHON) ./server/db/postgres/migrations.py
+	./server/$(PYTHON) ./server/db/postgres/migrations.py
 
 build-spark-worker:
 	cd spark && \

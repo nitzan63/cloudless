@@ -11,5 +11,51 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: pass
+
+  spark-master:
+    image: bitnami/spark:latest
+    environment:
+      - SPARK_MODE=master
+      - PYSPARK_PYTHON=python
+      - SPARK_MASTER_URL=spark://34.134.59.39:7077
+    ports:
+      - "7077:7077"
+      - "7078:7078"
+      - "7079:7079"
+      - "8080:8080"
+      - "6066:6066"
+    networks:
+      - spark-net
+
+  livy:
+    image: livy:latest
+    build:
+      context: ./spark/livy
+      dockerfile: livy.Dockerfile
+    container_name: livy
+    environment:
+      - SPARK_HOME=/opt/bitnami/spark
+      - LIVY_SPARK_MASTER=spark://spark-master:7077
+    depends_on:
+      - spark-master
+    ports:
+      - "8998:8998"
+    networks:
+      - spark-net
+    volumes:
+      - /home/arad/scripts:/scripts
+
+networks:
+  spark-net:
+    driver: bridge
+
 volumes:
   postgres_data:

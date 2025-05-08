@@ -1,0 +1,100 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydatabase
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - cloudless-net
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: pass
+    networks:
+      - cloudless-net
+
+  cloudless-main-server:
+    image: cloudless-main-server:latest
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    environment:
+      - PORT=8000
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_DB=mydatabase
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=user
+      - RABBITMQ_PASS=pass
+    depends_on:
+      - db
+      - rabbitmq
+    ports:
+      - "8000:8000"
+    networks:
+      - cloudless-net
+
+  spark-master:
+    image: bitnami/spark:latest
+    container_name: spark-master
+    environment:
+      - SPARK_MODE=master
+    ports:
+      - "7077:7077"
+      - "8080:8080"
+    networks:
+      - cloudless-net
+
+  spark-worker:
+    image: bitnami/spark:latest
+    container_name: spark-worker
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=2
+    depends_on:
+      - spark-master
+    ports:
+      - "8081:8081"
+    networks:
+      - cloudless-net
+
+  livy:
+    image: livy:latest
+    build:
+      context: ./spark/livy
+      dockerfile: livy.Dockerfile
+    container_name: livy
+    environment:
+      - SPARK_HOME=/opt/bitnami/spark
+      - LIVY_SPARK_MASTER=spark://spark-master:7077
+    depends_on:
+      - spark-master
+      - spark-worker
+    ports:
+      - "8998:8998"
+    networks:
+      - cloudless-net
+    volumes:
+      - C:/Users/aradt/Develop/FinalProjectCS/cloudless/task_executor/files:/scripts
+
+networks:
+  cloudless-net:
+    driver: bridge
+
+volumes:
+  postgres_data:

@@ -4,14 +4,25 @@ from datetime import datetime
 class TaskService:
     def __init__(self, db):
         self.db = db
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS task (
+                id TEXT PRIMARY KEY,
+                creation_time TIMESTAMP NOT NULL,
+                created_by TEXT NOT NULL,
+                requested_workers_amount INTEGER NOT NULL,
+                script_path TEXT NOT NULL,
+                main_file_name TEXT NOT NULL,
+                status TEXT NOT NULL
+            );
+        """)
 
-    def create_task(self, created_by, requested_workers_amount, status, script_path):
+    def create_task(self, created_by, requested_workers_amount, status, script_path, main_file_name):
         task_id = str(uuid.uuid4())
         creation_time = datetime.utcnow()
         self.db.execute("""
-            INSERT INTO task (id, creation_time, created_by, requested_workers_amount, script_path, status)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (task_id, creation_time, created_by, requested_workers_amount, script_path, status))
+            INSERT INTO task (id, creation_time, created_by, requested_workers_amount, script_path, main_file_name, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (task_id, creation_time, created_by, requested_workers_amount, script_path, main_file_name, status))
         return task_id
 
     def get_task(self, task_id):
@@ -24,7 +35,7 @@ class TaskService:
         return None
 
     def update_task(self, task_id, **kwargs):
-        allowed_fields = {"created_by", "requested_workers_amount", "script_path", "status"}
+        allowed_fields = {"created_by", "requested_workers_amount", "script_path", "main_file_name", "status"}
         fields = []
         values = []
         for key, value in kwargs.items():
