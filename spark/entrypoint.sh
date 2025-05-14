@@ -24,7 +24,8 @@ PUBLIC_KEY=$(cat /etc/wireguard/publickey)
 echo "Registering keys with VPN server..."
 RESPONSE=$(curl -s -X POST "$REGISTRATION_URL/register" \
  -H "Content-Type: application/json" \
- -d "{\"private_key\": \"$PRIVATE_KEY\", \"public_key\": \"$PUBLIC_KEY\"}")
+ -H "Authorization: Bearer $TOKEN" \
+ -d "{\"public_key\": \"$PUBLIC_KEY\"}")
 
 SERVER_PUBLIC_KEY=$(echo "$RESPONSE" | grep -o '"server_public_key":"[^"]*' | grep -o '[^"]*$')
 SERVER_ENDPOINT=$(echo "$RESPONSE" | grep -o '"server_endpoint":"[^"]*' | grep -o '[^"]*$')
