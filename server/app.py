@@ -1,11 +1,10 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from services.task_service import TaskService
+from services.storage_service import StorageService
 from services.rabbitmq_service import RabbitMQService
-from db.postgres.postgres_db import PostgresDB
 import os
 import logging
-from config import get_storage
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,9 +17,8 @@ app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
 # Initialize storage service
-storage_service = get_storage()
-pg_db = PostgresDB()
-task_service = TaskService(pg_db)
+storage_service = StorageService(os.environ.get('DATA_SERVICE_URL', "http://localhost:8002"))
+task_service = TaskService(os.environ.get('DATA_SERVICE_URL', "http://localhost:8002"))
 rabbitmq_service = RabbitMQService()
 
 @app.route('/health', methods=['GET'])
@@ -43,13 +41,9 @@ def submit_task():
         if not file.filename:
             logger.error("No filename in file object")
             return jsonify({'error': 'No file selected'}), 400
-            
-        # Read file content
-        file_content = file.read()
-        logger.info(f"File content read, size: {len(file_content)} bytes")
         
         # Upload to GCS
-        result = storage_service.upload_file(file_content, file.filename)
+        result = storage_service.upload_file(file)
         logger.info(f"Upload result: {result}")
         
         if result['status'] == 'error':
@@ -58,7 +52,10 @@ def submit_task():
             
         # Use service to create task
         task = task_service.create_task(
-            data['created_by'], data['requested_workers_amount'], data['status'], result['file_path'], result['file_name']
+            {
+                **{key: val for key, val in data.items() if key in ['created_by', 'requested_workers_amount', 'status']},
+                **{key: val for key, val in result.items() if key in ['file_path', 'file_name']}
+            }
         )
 
         rabbitmq_service.send_message(task)
