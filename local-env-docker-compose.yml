@@ -12,6 +12,25 @@ services:
     networks:
       - cloudless-net
 
+  data-service:
+    image: data-service:latest
+    build:
+      context: ./data_service
+      dockerfile: Dockerfile
+    environment:
+      - PORT=8002
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_DB=mydatabase
+      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=db
+    depends_on:
+      - db
+    ports:
+      - "8002:8002"
+    networks:
+      - cloudless-net
+
   rabbitmq:
     image: rabbitmq:3-management
     ports:
@@ -23,29 +42,25 @@ services:
     networks:
       - cloudless-net
 
-  # cloudless-main-server:
-  #   image: cloudless-main-server:latest
-  #   build:
-  #     context: ./server
-  #     dockerfile: Dockerfile
-  #   environment:
-  #     - PORT=8000
-  #     - POSTGRES_USER=myuser
-  #     - POSTGRES_PASSWORD=mypassword
-  #     - POSTGRES_DB=mydatabase
-  #     - POSTGRES_HOST=db
-  #     - POSTGRES_PORT=5432
-  #     - RABBITMQ_HOST=rabbitmq
-  #     - RABBITMQ_PORT=5672
-  #     - RABBITMQ_USER=user
-  #     - RABBITMQ_PASS=pass
-  #   depends_on:
-  #     - db
-  #     - rabbitmq
-  #   ports:
-  #     - "8000:8000"
-  #   networks:
-  #     - cloudless-net
+  cloudless-main-server:
+    image: cloudless-main-server:latest
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    environment:
+      - PORT=8000
+      - DATA_SERVICE_URL=http://data-service:8002
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=user
+      - RABBITMQ_PASS=pass
+    depends_on:
+      - data-service
+      - rabbitmq
+    ports:
+      - "8000:8000"
+    networks:
+      - cloudless-net
 
   spark-master:
     image: bitnami/spark:latest

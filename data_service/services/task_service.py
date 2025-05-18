@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 from db.postgres_db import PostgresDB
+from config import storage_service
 
 class TaskService:
     def __init__(self):
@@ -37,6 +38,14 @@ class TaskService:
             columns = [desc[0] for desc in cursor.description]
             return dict(zip(columns, rows[0]))
         return None
+
+    def get_task_to_execute(self, task_id):
+        task = self.get_task(task_id)
+        if task == None:
+            return None
+        print("Starting to fetch file")
+        file_data = storage_service.get_file(task['script_path'])
+        return file_data
 
     def update_task(self, task_id, **kwargs):
         allowed_fields = {"created_by", "requested_workers_amount", "script_path", "main_file_name", "status"}

@@ -7,7 +7,6 @@ task_service = TaskService()
 @router.post("/")
 def create_task(payload: dict):
     try:
-        print(payload)
         task_id = task_service.create_task(**payload)
         return {"status": "success", "task_id": task_id}
     except Exception as e:
@@ -20,6 +19,14 @@ def get_task(task_id: str):
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
+
+@router.get("/exec/{task_id}")
+def get_task_to_execute(task_id: str):
+    print("TASKS:", task_id)
+    file_data = task_service.get_task_to_execute(task_id)
+    if not file_data:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return file_data
 
 @router.put("/{task_id}")
 def update_task(task_id: str, payload: dict):

@@ -4,25 +4,25 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-BASE_URL = f"{os.environ.get('MAIN_SERVER_URL')}/api/tasks"
+DATA_SERVICE_URL = f"{os.environ.get('DATA_SERVICE_URL')}"
 
 def fetch_task(task_id):
-    task_res = requests.get(f"{BASE_URL}/{task_id}")
-    file_res = requests.get(f"{BASE_URL}/file/{task_id}")
+    response = requests.get(f"{DATA_SERVICE_URL}/tasks/exec/{task_id}")
 
-    task_data = task_res.json()
+    file_data = response.json()
 
-    if file_res.status_code == 200:
-        # Extract filename from Content-Disposition header
-        cd = file_res.headers.get("Content-Disposition", "")
-        filename = cd.split("filename=")[-1].strip('"') if "filename=" in cd else f"{task_id}_script.py"
+    filename = None
+    print(response.json())
+
+    if response.status_code == 200:
+        filename = file_data['file_name']
         dir_name = "files"
         os.makedirs(dir_name, exist_ok=True)
         file_path = os.path.join(dir_name, filename)
 
         with open(file_path, "wb") as f:
-            f.write(file_res.content)
+            f.write(file_data['file_content'])
     else:
         file_path = None
 
-    return task_data
+    return filename

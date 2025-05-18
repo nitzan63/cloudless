@@ -1,11 +1,9 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import StreamingResponse
 import io
-from services.storage.local_storage import LocalStorageService
-# from services.storage.google_storage import GoogleStorageService
+from config import storage_service
 
 router = APIRouter()
-storage_service = LocalStorageService()  # or GoogleStorageService()
 
 @router.post("/upload")
 async def upload(file: UploadFile = File(...)):
