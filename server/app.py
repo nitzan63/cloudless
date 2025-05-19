@@ -58,7 +58,7 @@ def submit_task():
             }
         )
 
-        rabbitmq_service.send_message(task)
+        rabbitmq_service.send_message(task['task_id'])
 
         return jsonify({
             "message": "Task received successfully",

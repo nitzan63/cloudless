@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:16
+    container_name: db
     environment:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
@@ -14,6 +15,7 @@ services:
 
   data-service:
     image: data-service:latest
+    container_name: data-service
     build:
       context: ./data_service
       dockerfile: Dockerfile
@@ -33,6 +35,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:3-management
+    container_name: rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -44,6 +47,7 @@ services:
 
   cloudless-main-server:
     image: cloudless-main-server:latest
+    container_name: cloudless-main-server
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -59,6 +63,26 @@ services:
       - rabbitmq
     ports:
       - "8000:8000"
+    networks:
+      - cloudless-net
+
+  task-executor:
+    image: task-executor:latest
+    container_name: task-executor
+    build:
+      context: ./task_executor
+      dockerfile: Dockerfile
+    environment:
+      - DATA_SERVICE_URL=http://data-service:8002
+      - LIVY_URL=http://livy:8998
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=user
+      - RABBITMQ_PASS=pass
+    depends_on:
+      - data-service
+      - livy
+      - rabbitmq
     networks:
       - cloudless-net
 
