@@ -34,7 +34,23 @@ class GoogleStorageService(StorageService):
                 'status': 'error',
                 'message': str(e)
             }
-            
+
+    def get_file(self, file_path: str) -> dict:
+        """Retrieve a file from GCS"""
+        try:
+            blob = self.bucket.blob(file_path)
+            content = blob.download_as_bytes()
+            return {
+                'status': 'success',
+                'file_content': content,
+                'file_name': os.path.basename(file_path)
+            }
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': str(e)
+            }
+
     def delete_file(self, file_path: str) -> dict:
         """Delete a file from GCS"""
         try:

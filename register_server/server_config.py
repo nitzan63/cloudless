@@ -1,0 +1,5 @@
+WG_INTERFACE = "wg0"
+WG_CONF_PATH = "/etc/wireguard/wg0.conf"
+SERVER_PUBLIC_KEY = "YOUR_SERVER_PUBLIC_KEY"
+SERVER_ENDPOINT = "vpn.example.com:51820"
+ALLOWED_IPS = "0.0.0.0/0"

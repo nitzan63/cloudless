@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:16
+    container_name: db
     environment:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
@@ -12,8 +13,29 @@ services:
     networks:
       - cloudless-net
 
+  data-service:
+    image: data-service:latest
+    container_name: data-service
+    build:
+      context: ./data_service
+      dockerfile: Dockerfile
+    environment:
+      - PORT=8002
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_DB=mydatabase
+      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=db
+    depends_on:
+      - db
+    ports:
+      - "8002:8002"
+    networks:
+      - cloudless-net
+
   rabbitmq:
     image: rabbitmq:3-management
+    container_name: rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -25,27 +47,47 @@ services:
 
   cloudless-main-server:
     image: cloudless-main-server:latest
+    container_name: cloudless-main-server
     build:
       context: ./server
       dockerfile: Dockerfile
     environment:
       - PORT=8000
-      - POSTGRES_USER=myuser
-      - POSTGRES_PASSWORD=mypassword
-      - POSTGRES_DB=mydatabase
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
+      - DATA_SERVICE_URL=http://data-service:8002
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=user
       - RABBITMQ_PASS=pass
     depends_on:
-      - db
+      - data-service
       - rabbitmq
     ports:
       - "8000:8000"
     networks:
       - cloudless-net
+
+  task-executor:
+    image: task-executor:latest
+    container_name: task-executor
+    build:
+      context: ./task_executor
+      dockerfile: Dockerfile
+    environment:
+      - DATA_SERVICE_URL=http://data-service:8002
+      - LIVY_URL=http://livy:8998
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=user
+      - RABBITMQ_PASS=pass
+      - SHARED_SCRIPTS_PATH=/app/scripts/
+    depends_on:
+      - data-service
+      - livy
+      - rabbitmq
+    networks:
+      - cloudless-net
+    volumes:
+      - shared-data:/app/scripts
 
   spark-master:
     image: bitnami/spark:latest
@@ -90,7 +132,7 @@ services:
     networks:
       - cloudless-net
     volumes:
-      - C:/Users/aradt/Develop/FinalProjectCS/cloudless/task_executor/files:/scripts
+      - shared-data:/app/scripts
 
 networks:
   cloudless-net:
@@ -98,3 +140,4 @@ networks:
 
 volumes:
   postgres_data:
+  shared-data:

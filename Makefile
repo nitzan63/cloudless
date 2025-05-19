@@ -49,3 +49,6 @@ run-spark-master:
 
 run-spark-job:
 	bin/spark-submit --conf spark.driver.host=34.134.59.39 --conf spark.driver.port=7078 --conf spark.blockManager.port=7079 --conf spark.driver.bindAddress=0.0.0.0 --master spark://34.134.59.39:7077 /wordcount.py
+
+remove-none-docker-images:
+	for /f "tokens=*" %i in ('docker images -f "dangling=true" -q') do docker rmi %i
