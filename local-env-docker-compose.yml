@@ -79,12 +79,15 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=user
       - RABBITMQ_PASS=pass
+      - SHARED_SCRIPTS_PATH=/app/scripts/
     depends_on:
       - data-service
       - livy
       - rabbitmq
     networks:
       - cloudless-net
+    volumes:
+      - shared-data:/app/scripts
 
   spark-master:
     image: bitnami/spark:latest
@@ -129,7 +132,7 @@ services:
     networks:
       - cloudless-net
     volumes:
-      - C:/Users/aradt/Develop/FinalProjectCS/cloudless/task_executor/files:/scripts
+      - shared-data:/app/scripts
 
 networks:
   cloudless-net:
@@ -137,3 +140,4 @@ networks:
 
 volumes:
   postgres_data:
+  shared-data:
