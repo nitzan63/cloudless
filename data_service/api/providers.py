@@ -12,9 +12,9 @@ def create_provider(user_id: str, public_key: str):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/{provider_id}")
-def get_provider(provider_id: int):
-    provider = provider_service.get_provider(provider_id)
+@router.get("/{user_id}")
+def get_provider(user_id: str):
+    provider = provider_service.get_provider(user_id)
     if not provider:
         raise HTTPException(status_code=404, detail="Not found")
     return provider

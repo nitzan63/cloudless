@@ -68,43 +68,6 @@ def submit_task():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
-@app.route('/api/tasks/<task_id>', methods=['GET'])
-def get_task(task_id):
-    """Get a task by its ID"""
-    try:
-        task = task_service.get_task(task_id)
-        if task:
-            return jsonify(task), 200
-        else:
-            return jsonify({"error": "Task not found"}), 404
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route('/api/tasks', methods=['GET'])
-def get_all_tasks():
-    """Get all tasks"""
-    try:
-        tasks = task_service.list_tasks()
-        if tasks:
-            return jsonify(tasks), 200
-        else:
-            return jsonify({"error": "No tasks"}), 404
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    
-@app.route('/api/tasks/file/<task_id>', methods=['GET'])
-def get_task_file(task_id):
-    try:
-        task = task_service.get_task(task_id)
-        if task:
-            return send_file(task['script_path'], as_attachment=True)
-        else:
-            return jsonify({"error": "Task not found"}), 404
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8000))
     logger.info(f"Starting server on port {port}")

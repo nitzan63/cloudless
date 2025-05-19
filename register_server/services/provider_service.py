@@ -1,65 +1,19 @@
-from datetime import datetime
-from ..db.postgres.postgres_db import PostgresDB
+from services.base_service import BaseService
+import requests
 
-class ProviderService:
-    def __init__(self):
-        self.db = PostgresDB()
-        self._create_table()
+class ProviderService(BaseService):
+    def create_provider(self, user_id: str, public_key: str):
+        payload = {
+            "user_id": user_id,
+            "public_key": public_key
+        }
+        response = requests.post(f"{self.base_url}/providers/", params=payload)
+        return self._handle_response(response)
 
-    def _create_table(self):
-        query = """
-        CREATE TABLE IF NOT EXISTS provider (
-            id SERIAL PRIMARY KEY,
-            network_ip VARCHAR(45) NOT NULL,
-            user_id VARCHAR(255) NOT NULL,
-            last_connection_time TIMESTAMP NOT NULL,
-            public_key TEXT NOT NULL
-        );
-        """
-        self.db.execute(query)
-
-    def _get_next_available_ip(self) -> str:
-        query = """
-        SELECT network_ip 
-        FROM provider 
-        ORDER BY network_ip DESC 
-        LIMIT 1;
-        """
-        result = self.db.execute(query)
-        if not result:
-            return "10.0.0.1"
-        
-        last_ip = result[0][0]
-        last_octet = int(last_ip.split('.')[-1])
-        return f"10.0.0.{last_octet + 1}"
-
-    def create_provider_with_ip(self, user_id: str, public_key: str) -> str:
-        client_ip = self._get_next_available_ip()
-        query = """
-        INSERT INTO provider (network_ip, user_id, last_connection_time, public_key)
-        VALUES (%s, %s, %s, %s)
-        RETURNING id;
-        """
-        self.db.execute(query, (client_ip, user_id, datetime.now(), public_key))
-        return client_ip
+    def get_provider(self, user_id: int):
+        response = requests.get(f"{self.base_url}/providers/{user_id}")
+        return self._handle_response(response)
 
     def update_last_connection(self, provider_id: int):
-        query = """
-        UPDATE provider 
-        SET last_connection_time = %s
-        WHERE id = %s;
-        """
-        self.db.execute(query, (datetime.now(), provider_id))
-
-    def get_provider(self, provider_id: int):
-        query = """
-        SELECT id, network_ip, user_id, last_connection_time, public_key
-        FROM provider
-        WHERE id = %s;
-        """
-        result = self.db.execute(query, (provider_id,))
-        return result[0] if result else None
-
-    def __del__(self):
-        if hasattr(self, 'db'):
-            self.db.close()
+        response = requests.post(f"{self.base_url}/providers/{provider_id}/touch")
+        return self._handle_response(response)

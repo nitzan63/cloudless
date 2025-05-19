@@ -2,44 +2,75 @@
 set -e
 
 # Use env vars
-REGISTRATION_URL="${REGISTRATION_URL:-http://vpn-server:5000}"
+REGISTRATION_URL="${REGISTRATION_URL:-http://localhost:8001}"
 
 if [ -z "$REGISTRATION_URL" ]; then
-echo "Error: REGISTRATION_URL environment variable is required."
-exit 1
+    echo "Error: REGISTRATION_URL environment variable is required."
+    exit 1
 fi
 
 # Generate WireGuard keypair if not present
-
 if [ ! -f /etc/wireguard/privatekey ]; then
-umask 077
-wg genkey | tee /etc/wireguard/privatekey | wg pubkey > /etc/wireguard/publickey
+    umask 077
+    wg genkey | tee /etc/wireguard/privatekey | wg pubkey > /etc/wireguard/publickey
 fi
 
 PRIVATE_KEY=$(cat /etc/wireguard/privatekey)
 PUBLIC_KEY=$(cat /etc/wireguard/publickey)
 
-# Register with the VPN registration server
+WG_CONF_PATH="/etc/wireguard/wg0.conf"
+DETAILS_CACHE="/etc/wireguard/registration_details.json"
 
-echo "Registering keys with VPN server..."
-RESPONSE=$(curl -s -X POST "$REGISTRATION_URL/register" \
- -H "Content-Type: application/json" \
- -H "Authorization: Bearer $TOKEN" \
- -d "{\"public_key\": \"$PUBLIC_KEY\"}")
+fetch_details() {
+    # Try to fetch details using GET (assuming GET /register/<public_key>)
+    RESPONSE=$(curl -s -X GET "$REGISTRATION_URL/details" \
+        -H "Authorization: Bearer $TOKEN")
+    echo "$RESPONSE"
+}
 
-SERVER_PUBLIC_KEY=$(echo "$RESPONSE" | grep -o '"server_public_key":"[^"]*' | grep -o '[^"]*$')
-SERVER_ENDPOINT=$(echo "$RESPONSE" | grep -o '"server_endpoint":"[^"]*' | grep -o '[^"]*$')
-ALLOWED_IPS=$(echo "$RESPONSE" | grep -o '"allowed_ips":"[^"]*' | grep -o '[^"]*$')
-CLIENT_IP=$(echo "$RESPONSE" | grep -o '"client_ip":"[^"]*' | grep -o '[^"]*$')
+register_and_get_details() {
+    # Register with the VPN registration server using POST
+    RESPONSE=$(curl -s -X GET "$REGISTRATION_URL/register/$PUBLIC_KEY" \
+        -H "Authorization: Bearer $TOKEN")
+    echo "$RESPONSE"
+}
 
-if [ -z "$SERVER_PUBLIC_KEY" ] || [ -z "$SERVER_ENDPOINT" ] || [ -z "$ALLOWED_IPS" ] || [ -z "$CLIENT_IP" ]; then
-echo "Registration failed or missing fields in server response: $RESPONSE"
-exit 1
-fi
+get_field() {
+    echo "$1" | grep -o "\"$2\":\"[^\"]*" | grep -o '[^"]*$'
+}
 
-# Create wg0.conf
+# If we already have a wg0.conf and registration details, try to reuse them
+if [ -f "$WG_CONF_PATH" ] && [ -f "$DETAILS_CACHE" ]; then
+    echo "Existing VPN configuration found. Verifying connection details..."
+    RESPONSE=$(cat "$DETAILS_CACHE")
+    # Optionally, you could re-fetch details to ensure they're still valid
+    # RESPONSE=$(fetch_details)
+else
+    # Try to fetch details (if already registered)
+    RESPONSE=$(fetch_details)
+    SERVER_PUBLIC_KEY=$(get_field "$RESPONSE" "server_public_key")
+    SERVER_ENDPOINT=$(get_field "$RESPONSE" "server_endpoint")
+    ALLOWED_IPS=$(get_field "$RESPONSE" "allowed_ips")
+    CLIENT_IP=$(get_field "$RESPONSE" "client_ip")
 
-cat > /etc/wireguard/wg0.conf <<EOF
+    if [ -z "$SERVER_PUBLIC_KEY" ] || [ -z "$SERVER_ENDPOINT" ] || [ -z "$ALLOWED_IPS" ] || [ -z "$CLIENT_IP" ]; then
+        echo "Not registered or missing fields, registering now..."
+        RESPONSE=$(register_and_get_details)
+        SERVER_PUBLIC_KEY=$(get_field "$RESPONSE" "server_public_key")
+        SERVER_ENDPOINT=$(get_field "$RESPONSE" "server_endpoint")
+        ALLOWED_IPS=$(get_field "$RESPONSE" "allowed_ips")
+        CLIENT_IP=$(get_field "$RESPONSE" "client_ip")
+        if [ -z "$SERVER_PUBLIC_KEY" ] || [ -z "$SERVER_ENDPOINT" ] || [ -z "$ALLOWED_IPS" ] || [ -z "$CLIENT_IP" ]; then
+            echo "Registration failed or missing fields in server response: $RESPONSE"
+            exit 1
+        fi
+    fi
+
+    # Save details for future runs
+    echo "$RESPONSE" > "$DETAILS_CACHE"
+
+    # Create wg0.conf
+    cat > "$WG_CONF_PATH" <<EOF
 [Interface]
 PrivateKey = $PRIVATE_KEY
 Address = $CLIENT_IP/32
@@ -52,8 +83,9 @@ AllowedIPs = $ALLOWED_IPS/32
 PersistentKeepalive = 25
 EOF
 
-echo "wg0.conf generated:"
-cat /etc/wireguard/wg0.conf
+    echo "wg0.conf generated:"
+    cat "$WG_CONF_PATH"
+fi
 
 # Start WireGuard
 wg-quick up wg0

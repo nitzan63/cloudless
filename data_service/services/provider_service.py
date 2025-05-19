@@ -51,14 +51,18 @@ class ProviderService:
         """
         self.db.execute(query, (datetime.now(), provider_id))
 
-    def get_provider(self, provider_id: int):
+    def get_provider(self, user_id: str):
         query = """
         SELECT id, network_ip, user_id, last_connection_time, public_key
         FROM provider
-        WHERE id = %s;
+        WHERE user_id = %s;
         """
-        result = self.db.execute(query, (provider_id,))
-        return result[0] if result else None
+        result = self.db.execute(query, (user_id,))
+        if not result:
+            return None
+        columns = ["id", "network_ip", "user_id", "last_connection_time", "public_key"]
+        provider_row = result[0]
+        return dict(zip(columns, provider_row))
 
     def __del__(self):
         if hasattr(self, 'db'):
