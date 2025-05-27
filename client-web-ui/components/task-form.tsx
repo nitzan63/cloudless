@@ -82,8 +82,9 @@ export default function TaskForm() {
   const handleDatasetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value
     setDatasetUrl(url)
-    // Reset the uploaded file path when a new URL is entered
-    setUploadedFilePath(null)
+    // Reset validation status when URL changes
+    setValidationStatus('unvalidated')
+    setValidationErrors([])
   }
 
   const handleUploadDataset = async () => {
@@ -132,6 +133,26 @@ export default function TaskForm() {
         description: "Please provide Python code for the task",
         variant: "destructive",
       })
+      return
+    }
+
+    if (!datasetUrl) {
+      setValidationStatus('invalid')
+      setValidationErrors(["Please enter a CSV URL"])
+      return
+    }
+
+    // Validate CSV URL format
+    try {
+      const url = new URL(datasetUrl)
+      if (!url.pathname.toLowerCase().endsWith('.csv')) {
+        setValidationStatus('invalid')
+        setValidationErrors(["URL must point to a CSV file"])
+        return
+      }
+    } catch (error) {
+      setValidationStatus('invalid')
+      setValidationErrors(["Please enter a valid URL"])
       return
     }
 
