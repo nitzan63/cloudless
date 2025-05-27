@@ -23,15 +23,28 @@ class ApiClient {
     return response.json()
   }
 
-  async uploadFile(file: File): Promise<UploadResult> {
+  async uploadFile(file: File, taskName: string): Promise<UploadResult> {
+    if (!taskName) {
+      throw new Error('Task name is required')
+    }
+
     const formData = new FormData()
     formData.append('file', file)
+    formData.append('created_by', 'admin')  // Default value
+    formData.append('requested_workers_amount', '1')  // Default value
+    formData.append('status', 'submitted')  // Default value
+    formData.append('name', taskName)  // Add task name
 
     const response = await fetch(`${this.baseUrl}${API_CONFIG.endpoints.uploadFile}`, {
       method: 'POST',
       body: formData,
     })
-    return this.handleResponse<UploadResult>(response)
+    const result = await this.handleResponse<any>(response)
+    return {
+      status: 'success',
+      file_path: result.task?.file_path || '',
+      message: result.message
+    }
   }
 
   async deleteFile(filePath: string): Promise<void> {

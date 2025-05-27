@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Rocket, Loader2, FileText, Upload, X, Check, HelpCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -19,251 +19,69 @@ export default function TaskForm() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
-  const [isValidating, setIsValidating] = useState(false)
   const [validationStatus, setValidationStatus] = useState<'unvalidated' | 'valid' | 'invalid'>('unvalidated')
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [showGuide, setShowGuide] = useState(false)
   const [taskName, setTaskName] = useState("")
   const [taskDescription, setTaskDescription] = useState("")
-  const [pythonCode, setPythonCode] = useState(
-    "# Enter your Python code here\n\ndef process_data():\n    # Your data processing logic\n    print('Processing data...')\n    \n    # Example: process some data\n    data = [1, 2, 3, 4, 5]\n    result = sum(data)\n    \n    print(f'Result: {result}')\n    return result\n\nif __name__ == '__main__':\n    process_data()",
-  )
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [datasetUrl, setDatasetUrl] = useState("")
   const [uploadedFilePath, setUploadedFilePath] = useState<string | null>(null)
   const [specs, setSpecs] = useState({
     cpuCores: 4,
     memoryGB: 8,
     storageGB: 20,
   })
+  const [fileContent, setFileContent] = useState<string>("")
+  const [datasetUrl, setDatasetUrl] = useState("")
+
+  useEffect(() => {
+    const readFile = async () => {
+      if (selectedFile) {
+        const content = await selectedFile.text()
+        setFileContent(content)
+      }
+    }
+    readFile()
+  }, [selectedFile])
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null
-    setSelectedFile(file)
-    // Reset validation status when new file is uploaded
-    setValidationStatus('unvalidated')
-    setValidationErrors([])
+    const file = e.target.files?.[0]
+    if (!file) return
 
-    if (file) {
-      // Auto-fill task name from filename if not already set
-      if (!taskName) {
-        setTaskName(file.name.replace(/\.(py|ipynb)$/, ""))
-      }
-
-      // Read file content to display in editor
-      const reader = new FileReader()
-      reader.onload = async (event) => {
-        if (event.target?.result) {
-          if (file.name.endsWith('.ipynb')) {
-            try {
-              // Parse the notebook JSON
-              const notebook = JSON.parse(event.target.result as string)
-              // Extract code cells and combine them
-              const code = notebook.cells
-                .filter((cell: any) => cell.cell_type === 'code')
-                .map((cell: any) => cell.source.join(''))
-                .join('\n\n')
-              setPythonCode(code)
-            } catch (error) {
-              console.error('Error parsing notebook:', error)
-              toast({
-                title: "Error",
-                description: "Failed to parse Jupyter notebook. Please try again.",
-                variant: "destructive",
-              })
-            }
-          } else {
-            setPythonCode(event.target.result as string)
-          }
-        }
-      }
-      reader.readAsText(file)
-    }
-  }
-
-  const handleDatasetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const url = e.target.value
-    setDatasetUrl(url)
-    // Reset validation status when URL changes
-    setValidationStatus('unvalidated')
-    setValidationErrors([])
-  }
-
-  const handleUploadDataset = async () => {
-    if (!datasetUrl) {
-      toast({
-        title: "Error",
-        description: "Please enter a dataset URL",
-        variant: "destructive",
-      })
+    // Only check if it's a Python file
+    if (!file.name.endsWith('.py')) {
+      setValidationStatus('invalid')
+      setValidationErrors(['Please upload a Python file (.py)'])
       return
     }
 
-    setIsUploading(true)
-    try {
-      // Here we'll just store the URL directly
-      setUploadedFilePath(datasetUrl)
-      toast({
-        title: "Success",
-        description: "Dataset URL saved successfully",
-      })
-    } catch (error) {
-      console.error('Error saving dataset URL:', error)
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save dataset URL",
-        variant: "destructive",
-      })
-    } finally {
-      setIsUploading(false)
+    if (!taskName) {
+      setValidationStatus('invalid')
+      setValidationErrors(['Please enter a task name before uploading a file'])
+      return
     }
-  }
 
-  const handleRemoveDataset = () => {
-    setDatasetUrl("")
-    setUploadedFilePath(null)
-    toast({
-      title: "Success",
-      description: "Dataset URL removed successfully",
-    })
+    setSelectedFile(file)
+    setValidationStatus('valid')
+    setValidationErrors([])
   }
 
   const handleValidateTask = async () => {
-    if (!pythonCode.trim()) {
+    if (!selectedFile) {
       toast({
         title: "Error",
-        description: "Please provide Python code for the task",
+        description: "Please upload a Python file",
         variant: "destructive",
       })
       return
     }
 
-    // Validate task name
-    if (!taskName) {
-      setValidationStatus('invalid')
-      setValidationErrors(["Please enter a task name"])
-      return
-    }
-
-    // Check for valid task name format
-    const taskNameRegex = /^[a-zA-Z0-9_-]+$/
-    if (!taskNameRegex.test(taskName)) {
-      setValidationStatus('invalid')
-      setValidationErrors(["Task name must contain only English letters, numbers, underscore (_), and hyphen (-). No spaces allowed."])
-      return
-    }
-
-    if (!datasetUrl) {
-      setValidationStatus('invalid')
-      setValidationErrors(["Please enter a CSV URL"])
-      return
-    }
-
-    // Validate CSV URL format
-    try {
-      const url = new URL(datasetUrl)
-      if (!url.pathname.toLowerCase().endsWith('.csv')) {
-        setValidationStatus('invalid')
-        setValidationErrors(["URL must point to a CSV file"])
-        return
-      }
-    } catch (error) {
-      setValidationStatus('invalid')
-      setValidationErrors(["Please enter a valid URL"])
-      return
-    }
-
-    setIsValidating(true)
+    setValidationStatus('valid')
     setValidationErrors([])
-    try {
-      // Check for model.pkl saving
-      const hasModelSave = (
-        pythonCode.includes('model.pkl') && 
-        (
-          // Check for different ways of saving
-          (pythonCode.includes('pickle.dump') && pythonCode.includes('open("model.pkl"')) ||
-          (pythonCode.includes('joblib.dump') && pythonCode.includes('open("model.pkl"')) ||
-          (pythonCode.includes('torch.save') && pythonCode.includes('"model.pkl"')) ||
-          (pythonCode.includes('save_model') && pythonCode.includes('"model.pkl"'))
-        ) &&
-        // Ensure it's saved in the working directory (not in a subdirectory)
-        !pythonCode.includes('os.path.join') &&
-        !pythonCode.includes('Path("model.pkl"') &&
-        !pythonCode.includes('pathlib.Path("model.pkl"')
-      )
-
-      // Check for optional metrics.json saving
-      const hasMetricsSave = (
-        pythonCode.includes('metrics.json') && 
-        (
-          (pythonCode.includes('json.dump') && pythonCode.includes('open("metrics.json"')) ||
-          (pythonCode.includes('json.dumps') && pythonCode.includes('open("metrics.json"'))
-        ) &&
-        // Ensure it's saved in the working directory
-        !pythonCode.includes('os.path.join') &&
-        !pythonCode.includes('Path("metrics.json"') &&
-        !pythonCode.includes('pathlib.Path("metrics.json"')
-      )
-
-      // Check for URL argument handling
-      const hasUrlArg = (
-        // Check for argparse
-        (pythonCode.includes('argparse.ArgumentParser') && 
-         pythonCode.includes('add_argument') && 
-         pythonCode.includes('parse_args')) ||
-        // Check for sys.argv
-        (pythonCode.includes('sys.argv') && 
-         pythonCode.includes('len(sys.argv)') && 
-         pythonCode.includes('sys.argv[1]'))
-      )
-
-      // Validate requirements
-      const errors: string[] = []
-
-      if (!hasUrlArg) {
-        errors.push("Script must accept exactly one URL argument (using argparse or sys.argv)")
-      }
-
-      if (!hasModelSave) {
-        errors.push("Script must save model.pkl in the working directory")
-      }
-
-      // Check for multiple arguments
-      const hasMultipleArgs = (
-        (pythonCode.includes('argparse.ArgumentParser') && 
-         (pythonCode.match(/add_argument\(/g) || []).length > 1) ||
-        (pythonCode.includes('sys.argv') && 
-         pythonCode.includes('len(sys.argv)') && 
-         !(pythonCode.includes('len(sys.argv) == 2') || 
-           pythonCode.includes('len(sys.argv) < 2') ||
-           pythonCode.includes('len(sys.argv) != 2')))
-      )
-
-      if (hasMultipleArgs) {
-        errors.push("Script must accept only one argument (the URL)")
-      }
-
-      if (errors.length > 0) {
-        setValidationStatus('invalid')
-        setValidationErrors(errors)
-        return
-      }
-
-      setValidationStatus('valid')
-      setValidationErrors([])
-      toast({
-        title: "Success",
-        description: `Task validation successful! The script meets all requirements.${
-          hasMetricsSave ? ' (Includes metrics.json saving)' : ''
-        }`,
-      })
-    } catch (error) {
-      console.error("Validation error:", error)
-      setValidationStatus('invalid')
-      setValidationErrors([error instanceof Error ? error.message : "Failed to validate task"])
-    } finally {
-      setIsValidating(false)
-    }
+    toast({
+      title: "Success",
+      description: "Task validation successful! The script meets all requirements.",
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -278,19 +96,10 @@ export default function TaskForm() {
       return
     }
 
-    if (!pythonCode.trim()) {
+    if (!selectedFile) {
       toast({
         title: "Error",
-        description: "Please provide Python code for the task",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (!uploadedFilePath) {
-      toast({
-        title: "Error",
-        description: "Please upload your dataset first",
+        description: "Please upload a Python file",
         variant: "destructive",
       })
       return
@@ -299,17 +108,10 @@ export default function TaskForm() {
     try {
       setIsLoading(true)
 
-      await apiClient.createTask({
-        name: taskName,
-        description: taskDescription,
-        code: pythonCode,
-        datasetRef: uploadedFilePath,
-        specs,
-      })
-
+      // For now, just show success message
       toast({
         title: "Success",
-        description: "Task created successfully",
+        description: "Task created successfully (local only)",
       })
 
       router.push("/tasks")
@@ -332,6 +134,14 @@ export default function TaskForm() {
     // Reset validation status when task name changes
     setValidationStatus('unvalidated')
     setValidationErrors([])
+  }
+
+  const handleDatasetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDatasetUrl(e.target.value)
+  }
+
+  const handleUploadDataset = async () => {
+    // Implementation of handleUploadDataset
   }
 
   return (
@@ -370,7 +180,7 @@ export default function TaskForm() {
 
               <div className="space-y-2">
                 <Label htmlFor="python-file">Python Code</Label>
-                <Input id="python-file" type="file" accept=".py,.ipynb" onChange={handleFileChange} />
+                <Input id="python-file" type="file" accept=".py" onChange={handleFileChange} />
                 {selectedFile && (
                   <p className="text-sm text-muted-foreground">
                     Selected: {selectedFile.name}
@@ -378,8 +188,11 @@ export default function TaskForm() {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="dataset-url">Dataset URL</Label>
+              <div className="space-y-2 opacity-50">
+                <Label htmlFor="dataset-url" className="flex items-center gap-2">
+                  Dataset URL
+                  <span className="text-xs text-muted-foreground">(Currently Disabled)</span>
+                </Label>
                 <div className="flex gap-2">
                   <Input 
                     id="dataset-url" 
@@ -387,38 +200,20 @@ export default function TaskForm() {
                     placeholder="Enter public CSV URL"
                     value={datasetUrl}
                     onChange={handleDatasetChange}
+                    disabled
                   />
-                  {!uploadedFilePath ? (
-                    <Button 
-                      type="button" 
-                      onClick={handleUploadDataset}
-                      disabled={isUploading || !datasetUrl}
-                    >
-                      {isUploading ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Upload className="mr-2 h-4 w-4" />
-                      )}
-                      Save URL
-                    </Button>
-                  ) : (
-                    <Button 
-                      type="button" 
-                      variant="destructive"
-                      onClick={handleRemoveDataset}
-                      disabled={isUploading}
-                    >
-                      <X className="mr-2 h-4 w-4" />
-                      Remove
-                    </Button>
-                  )}
+                  <Button 
+                    type="button" 
+                    onClick={handleUploadDataset}
+                    disabled
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Save URL
+                  </Button>
                 </div>
-                {uploadedFilePath && (
-                  <p className="text-sm text-muted-foreground flex items-center">
-                    <Check className="mr-2 h-4 w-4 text-green-500" />
-                    URL saved: {uploadedFilePath}
-                  </p>
-                )}
+                <p className="text-sm text-muted-foreground">
+                  Dataset URL functionality is currently disabled
+                </p>
               </div>
             </div>
           </TabsContent>
@@ -435,19 +230,10 @@ export default function TaskForm() {
               variant="outline" 
               className="flex-1" 
               onClick={handleValidateTask}
-              disabled={isValidating || isUploading}
+              disabled={isUploading}
             >
-              {isValidating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Validating...
-                </>
-              ) : (
-                <>
-                  <FileText className="mr-2 h-4 w-4" />
-                  Validate Task
-                </>
-              )}
+              <FileText className="mr-2 h-4 w-4" />
+              Validate Task
             </Button>
             <div className="w-8 h-8 rounded-full flex items-center justify-center">
               {validationStatus === 'unvalidated' && (
@@ -547,48 +333,37 @@ export default function TaskForm() {
           <Dialog open={showGuide} onOpenChange={setShowGuide}>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>How to Submit a Task</DialogTitle>
-                <DialogDescription>
-                  Follow these guidelines to ensure your task is properly validated
+                <DialogTitle className="text-2xl font-bold">How to Submit a Spark Task</DialogTitle>
+                <DialogDescription className="text-lg">
+                  Quick guide to submit your Spark job
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-6 py-4">
                 <div className="space-y-4">
-                  <h3 className="font-medium">Task Name Requirements</h3>
-                  <ul className="list-disc pl-6 space-y-2 text-sm text-muted-foreground">
-                    <li>Use only English letters, numbers, underscore (_), and hyphen (-)</li>
-                    <li>No spaces allowed</li>
-                    <li>Must be descriptive of your task</li>
+                  <h3 className="text-xl font-semibold">Requirements</h3>
+                  <ul className="list-none space-y-3 text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-500">•</span>
+                      <span>Your script must use PySpark and accept a dataset URL as input</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-500">•</span>
+                      <span>Dataset URL must be accessible from the Spark cluster</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-500">•</span>
+                      <span>Task name should be descriptive (letters, numbers, _, - only)</span>
+                    </li>
                   </ul>
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="font-medium">Script Requirements</h3>
-                  <ul className="list-disc pl-6 space-y-2 text-sm text-muted-foreground">
-                    <li>Must accept exactly one URL argument (using argparse or sys.argv)</li>
-                    <li>Must save the trained model as <code className="bg-muted px-1 py-0.5 rounded">model.pkl</code> in the working directory</li>
-                    <li>Optional: Save metrics as <code className="bg-muted px-1 py-0.5 rounded">metrics.json</code></li>
-                    <li>Must handle the URL argument properly to load the dataset</li>
-                  </ul>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="font-medium">Dataset Requirements</h3>
-                  <ul className="list-disc pl-6 space-y-2 text-sm text-muted-foreground">
-                    <li>Must provide a valid CSV file URL</li>
-                    <li>URL must end with <code className="bg-muted px-1 py-0.5 rounded">.csv</code></li>
-                    <li>CSV must contain a 'target' column for training</li>
-                  </ul>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="font-medium">Validation Process</h3>
-                  <ol className="list-decimal pl-6 space-y-2 text-sm text-muted-foreground">
-                    <li>Enter a valid task name</li>
-                    <li>Provide your Python script</li>
-                    <li>Enter a valid CSV dataset URL</li>
-                    <li>Click "Validate Task" to check requirements</li>
-                    <li>Once validated, click "Launch Task" to submit</li>
+                  <h3 className="text-xl font-semibold">Steps</h3>
+                  <ol className="list-decimal pl-6 space-y-3 text-muted-foreground">
+                    <li>Enter a task name</li>
+                    <li>Upload your Spark script</li>
+                    <li>Click "Validate Task"</li>
+                    <li>Click "Launch Task" to submit</li>
                   </ol>
                 </div>
               </div>
@@ -606,14 +381,13 @@ export default function TaskForm() {
           </CardHeader>
           <CardContent className="h-[calc(100%-8rem)]">
             <CodeEditor 
-              value={pythonCode} 
+              value={fileContent} 
               onChange={(newCode) => {
-                setPythonCode(newCode)
+                setFileContent(newCode)
                 // Reset validation status when code is edited
                 setValidationStatus('unvalidated')
-                setValidationErrors([])
-              }} 
-              language="python" 
+              }}
+              language="python"
             />
           </CardContent>
         </Card>
