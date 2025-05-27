@@ -33,6 +33,31 @@ class LocalStorageService(StorageService):
                 'message': str(e)
             }
 
+    def get_file(self, file_path: str) -> dict:
+        """Retrieve a file from local storage"""
+        try:
+            print("here 1")
+            full_path = os.path.join(self.base_path, file_path)
+            print(file_path)
+            with open(full_path, 'rb') as f:
+                return {
+                    'status': 'success',
+                    'file_content': f.read(),
+                    'file_name': os.path.basename(file_path)
+                }
+            print("here 2")
+        except FileNotFoundError:
+            return {
+                'status': 'error',
+                'message': f'File not found: {file_path}'
+            }
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': str(e)
+            }
+
+
     def delete_file(self, file_path: str) -> dict:
         """Delete a file from local storage"""
         try:

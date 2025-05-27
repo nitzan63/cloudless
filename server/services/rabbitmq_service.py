@@ -22,8 +22,8 @@ class RabbitMQService:
         self.connect()
 
     def connect(self):
-        max_retries = 5
-        retry_delay = 2  # seconds
+        max_retries = 10
+        retry_delay = 4  # seconds
         
         for attempt in range(max_retries):
             try:

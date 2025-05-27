@@ -1,28 +1,30 @@
 import requests
 import os
 from dotenv import load_dotenv
+import logging
+
 load_dotenv()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-
-BASE_URL = f"{os.environ.get('MAIN_SERVER_URL')}/api/tasks"
+DATA_SERVICE_URL = f"{os.environ.get('DATA_SERVICE_URL')}"
+SHARED_SCRIPTS_PATH = f"{os.environ.get('SHARED_SCRIPTS_PATH')}"
 
 def fetch_task(task_id):
-    task_res = requests.get(f"{BASE_URL}/{task_id}")
-    file_res = requests.get(f"{BASE_URL}/file/{task_id}")
+    response = requests.get(f"{DATA_SERVICE_URL}/tasks/exec/{task_id}")
 
-    task_data = task_res.json()
+    file_data = response.json()
+    logger.info(f"File data: {file_data}")
+    filename = None
 
-    if file_res.status_code == 200:
-        # Extract filename from Content-Disposition header
-        cd = file_res.headers.get("Content-Disposition", "")
-        filename = cd.split("filename=")[-1].strip('"') if "filename=" in cd else f"{task_id}_script.py"
-        dir_name = "files"
-        os.makedirs(dir_name, exist_ok=True)
-        file_path = os.path.join(dir_name, filename)
+    if response.status_code == 200:
+        filename = file_data['file_name']
+        os.makedirs(SHARED_SCRIPTS_PATH, exist_ok=True)
+        file_path = os.path.join(SHARED_SCRIPTS_PATH, filename)
 
-        with open(file_path, "wb") as f:
-            f.write(file_res.content)
+        with open(file_path, "w") as f:
+            f.write(file_data['file_content'])
     else:
         file_path = None
 
-    return task_data
+    return filename
