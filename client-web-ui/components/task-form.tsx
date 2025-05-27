@@ -38,6 +38,9 @@ export default function TaskForm() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null
     setSelectedFile(file)
+    // Reset validation status when new file is uploaded
+    setValidationStatus('unvalidated')
+    setValidationErrors([])
 
     if (file) {
       // Auto-fill task name from filename if not already set
@@ -151,6 +154,19 @@ export default function TaskForm() {
         !pythonCode.includes('pathlib.Path("model.pkl"')
       )
 
+      // Check for optional metrics.json saving
+      const hasMetricsSave = (
+        pythonCode.includes('metrics.json') && 
+        (
+          (pythonCode.includes('json.dump') && pythonCode.includes('open("metrics.json"')) ||
+          (pythonCode.includes('json.dumps') && pythonCode.includes('open("metrics.json"'))
+        ) &&
+        // Ensure it's saved in the working directory
+        !pythonCode.includes('os.path.join') &&
+        !pythonCode.includes('Path("metrics.json"') &&
+        !pythonCode.includes('pathlib.Path("metrics.json"')
+      )
+
       // Check for URL argument handling
       const hasUrlArg = (
         // Check for argparse
@@ -199,7 +215,9 @@ export default function TaskForm() {
       setValidationErrors([])
       toast({
         title: "Success",
-        description: "Task validation successful! The script meets all requirements.",
+        description: `Task validation successful! The script meets all requirements.${
+          hasMetricsSave ? ' (Includes metrics.json saving)' : ''
+        }`,
       })
     } catch (error) {
       console.error("Validation error:", error)
@@ -398,7 +416,11 @@ export default function TaskForm() {
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading || isUploading}>
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={isLoading || isUploading || validationStatus !== 'valid'}
+          >
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -432,6 +454,38 @@ export default function TaskForm() {
               </CardContent>
             </Card>
           )}
+
+          {validationStatus === 'unvalidated' && (
+            <Card className="mt-4 border-yellow-200">
+              <CardHeader className="p-4 pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-yellow-500" />
+                  Script Not Validated
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <p className="text-sm text-muted-foreground">
+                  Please validate your script before launching the task to ensure it meets all requirements.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {validationStatus === 'valid' && (
+            <Card className="mt-4 border-green-200">
+              <CardHeader className="p-4 pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  Script Validated Successfully
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <p className="text-sm text-muted-foreground">
+                  Your script meets all requirements and is ready to be launched!
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
@@ -443,7 +497,16 @@ export default function TaskForm() {
             <CardDescription>Write or paste your Python code here</CardDescription>
           </CardHeader>
           <CardContent className="h-[calc(100%-8rem)]">
-            <CodeEditor value={pythonCode} onChange={setPythonCode} language="python" />
+            <CodeEditor 
+              value={pythonCode} 
+              onChange={(newCode) => {
+                setPythonCode(newCode)
+                // Reset validation status when code is edited
+                setValidationStatus('unvalidated')
+                setValidationErrors([])
+              }} 
+              language="python" 
+            />
           </CardContent>
         </Card>
       </div>

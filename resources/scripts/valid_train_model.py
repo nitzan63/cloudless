@@ -36,6 +36,7 @@ def main():
         pickle.dump(model, f)
     print("✅ model.pkl saved.")
 
+    # Calculate and save metrics
     y_pred = model.predict(X_test)
     metrics = {
         "accuracy": accuracy_score(y_test, y_pred),
