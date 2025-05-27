@@ -170,7 +170,7 @@ export default function TaskList({ initialTasks }: TaskListProps) {
 
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Size:</span>
-                    <span>{(task.code.length / 1024).toFixed(2)} KB</span>
+                    <span>{task.code ? `${(task.code.length / 1024).toFixed(2)} KB` : 'N/A'}</span>
                   </div>
                 </div>
               </CardContent>

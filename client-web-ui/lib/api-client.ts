@@ -64,12 +64,20 @@ class ApiClient {
     datasetRef: string
     specs: TaskSpecs
   }): Promise<Task> {
+    const formData = new FormData()
+    
+    // Create a File object from the code string
+    const file = new File([taskData.code], `${taskData.name}.py`, { type: 'text/plain' })
+    formData.append('file', file)
+    
+    // Add required fields
+    formData.append('created_by', 'admin')
+    formData.append('requested_workers_amount', '1')
+    formData.append('status', 'submitted')
+
     const response = await fetch(`${this.baseUrl}${API_CONFIG.endpoints.tasks}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(taskData),
+      body: formData,
     })
     return this.handleResponse<Task>(response)
   }

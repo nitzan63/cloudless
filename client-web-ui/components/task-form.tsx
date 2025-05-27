@@ -86,45 +86,35 @@ export default function TaskForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!taskName) {
-      toast({
-        title: "Error",
-        description: "Please provide a task name",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (!selectedFile) {
-      toast({
-        title: "Error",
-        description: "Please upload a Python file",
-        variant: "destructive",
-      })
-      return
-    }
+    if (!selectedFile) return
 
     try {
-      setIsLoading(true)
-
-      // For now, just show success message
-      toast({
-        title: "Success",
-        description: "Task created successfully (local only)",
+      const fileContent = await selectedFile.text()
+      const task = await apiClient.createTask({
+        name: taskName,
+        description: 'Spark task', // We can make this dynamic later
+        code: fileContent,
+        datasetRef: '', // We'll handle this later
+        specs: {
+          cpuCores: 1,
+          memoryGB: 1,
+          storageGB: 1,
+        },
       })
 
+      toast({
+        title: "Success",
+        description: "Task created successfully!",
+      })
       router.push("/tasks")
       router.refresh()
     } catch (error) {
-      console.error("Error creating task:", error)
+      console.error('Error creating task:', error)
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create task. Please try again.",
+        description: "Failed to create task",
         variant: "destructive",
       })
-    } finally {
-      setIsLoading(false)
     }
   }
 
