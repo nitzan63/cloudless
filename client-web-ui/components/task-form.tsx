@@ -2,13 +2,13 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Rocket, Loader2, FileText, Upload, X, Check } from "lucide-react"
+import { Rocket, Loader2, FileText, Upload, X, Check, HelpCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { toast } from "@/hooks/use-toast"
 import CodeEditor from "@/components/code-editor"
 import { apiClient } from "@/lib/api-client"
@@ -133,6 +133,21 @@ export default function TaskForm() {
         description: "Please provide Python code for the task",
         variant: "destructive",
       })
+      return
+    }
+
+    // Validate task name
+    if (!taskName) {
+      setValidationStatus('invalid')
+      setValidationErrors(["Please enter a task name"])
+      return
+    }
+
+    // Check for valid task name format
+    const taskNameRegex = /^[a-zA-Z0-9_-]+$/
+    if (!taskNameRegex.test(taskName)) {
+      setValidationStatus('invalid')
+      setValidationErrors(["Task name must contain only English letters, numbers, underscore (_), and hyphen (-). No spaces allowed."])
       return
     }
 
@@ -309,6 +324,14 @@ export default function TaskForm() {
     }
   }
 
+  const handleTaskNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newName = e.target.value
+    setTaskName(newName)
+    // Reset validation status when task name changes
+    setValidationStatus('unvalidated')
+    setValidationErrors([])
+  }
+
   return (
     <form onSubmit={handleSubmit} className="flex h-[calc(100vh-4rem)]">
       {/* Sidebar */}
@@ -325,9 +348,9 @@ export default function TaskForm() {
                 <Label htmlFor="task-name">Task Name</Label>
                 <Input
                   id="task-name"
-                  placeholder="Enter task name"
+                  placeholder="Enter task name (letters, numbers, _, - only)"
                   value={taskName}
-                  onChange={(e) => setTaskName(e.target.value)}
+                  onChange={handleTaskNameChange}
                   required
                 />
               </div>
@@ -507,6 +530,16 @@ export default function TaskForm() {
               </CardContent>
             </Card>
           )}
+
+          <div className="mt-4 flex justify-center">
+            <button 
+              type="button" 
+              className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <HelpCircle className="h-4 w-4" />
+              How to Submit a Task?
+            </button>
+          </div>
         </div>
       </div>
 
