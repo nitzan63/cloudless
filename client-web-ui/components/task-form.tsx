@@ -18,13 +18,16 @@ export default function TaskForm() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [isValidating, setIsValidating] = useState(false)
+  const [validationStatus, setValidationStatus] = useState<'unvalidated' | 'valid' | 'invalid'>('unvalidated')
+  const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [taskName, setTaskName] = useState("")
   const [taskDescription, setTaskDescription] = useState("")
   const [pythonCode, setPythonCode] = useState(
     "# Enter your Python code here\n\ndef process_data():\n    # Your data processing logic\n    print('Processing data...')\n    \n    # Example: process some data\n    data = [1, 2, 3, 4, 5]\n    result = sum(data)\n    \n    print(f'Result: {result}')\n    return result\n\nif __name__ == '__main__':\n    process_data()",
   )
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [selectedDataset, setSelectedDataset] = useState<File | null>(null)
+  const [datasetUrl, setDatasetUrl] = useState("")
   const [uploadedFilePath, setUploadedFilePath] = useState<string | null>(null)
   const [specs, setSpecs] = useState({
     cpuCores: 4,
@@ -74,17 +77,17 @@ export default function TaskForm() {
   }
 
   const handleDatasetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null
-    setSelectedDataset(file)
-    // Reset the uploaded file path when a new file is selected
+    const url = e.target.value
+    setDatasetUrl(url)
+    // Reset the uploaded file path when a new URL is entered
     setUploadedFilePath(null)
   }
 
   const handleUploadDataset = async () => {
-    if (!selectedDataset) {
+    if (!datasetUrl) {
       toast({
         title: "Error",
-        description: "Please select a dataset file first",
+        description: "Please enter a dataset URL",
         variant: "destructive",
       })
       return
@@ -92,21 +95,17 @@ export default function TaskForm() {
 
     setIsUploading(true)
     try {
-      const result = await apiClient.uploadFile(selectedDataset)
-      if (result.status === 'success' && result.file_path) {
-        setUploadedFilePath(result.file_path)
-        toast({
-          title: "Success",
-          description: "Dataset uploaded successfully",
-        })
-      } else {
-        throw new Error(result.message || 'Upload failed')
-      }
+      // Here we'll just store the URL directly
+      setUploadedFilePath(datasetUrl)
+      toast({
+        title: "Success",
+        description: "Dataset URL saved successfully",
+      })
     } catch (error) {
-      console.error('Error uploading dataset:', error)
+      console.error('Error saving dataset URL:', error)
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to upload dataset",
+        description: error instanceof Error ? error.message : "Failed to save dataset URL",
         variant: "destructive",
       })
     } finally {
@@ -114,27 +113,100 @@ export default function TaskForm() {
     }
   }
 
-  const handleRemoveDataset = async () => {
-    if (!uploadedFilePath) return
+  const handleRemoveDataset = () => {
+    setDatasetUrl("")
+    setUploadedFilePath(null)
+    toast({
+      title: "Success",
+      description: "Dataset URL removed successfully",
+    })
+  }
 
-    setIsUploading(true)
-    try {
-      await apiClient.deleteFile(uploadedFilePath)
-      setSelectedDataset(null)
-      setUploadedFilePath(null)
-      toast({
-        title: "Success",
-        description: "Dataset removed successfully",
-      })
-    } catch (error) {
-      console.error('Error removing dataset:', error)
+  const handleValidateTask = async () => {
+    if (!pythonCode.trim()) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to remove dataset",
+        description: "Please provide Python code for the task",
         variant: "destructive",
       })
+      return
+    }
+
+    setIsValidating(true)
+    setValidationErrors([])
+    try {
+      // Check for model.pkl saving
+      const hasModelSave = (
+        pythonCode.includes('model.pkl') && 
+        (
+          // Check for different ways of saving
+          (pythonCode.includes('pickle.dump') && pythonCode.includes('open("model.pkl"')) ||
+          (pythonCode.includes('joblib.dump') && pythonCode.includes('open("model.pkl"')) ||
+          (pythonCode.includes('torch.save') && pythonCode.includes('"model.pkl"')) ||
+          (pythonCode.includes('save_model') && pythonCode.includes('"model.pkl"'))
+        ) &&
+        // Ensure it's saved in the working directory (not in a subdirectory)
+        !pythonCode.includes('os.path.join') &&
+        !pythonCode.includes('Path("model.pkl"') &&
+        !pythonCode.includes('pathlib.Path("model.pkl"')
+      )
+
+      // Check for URL argument handling
+      const hasUrlArg = (
+        // Check for argparse
+        (pythonCode.includes('argparse.ArgumentParser') && 
+         pythonCode.includes('add_argument') && 
+         pythonCode.includes('parse_args')) ||
+        // Check for sys.argv
+        (pythonCode.includes('sys.argv') && 
+         pythonCode.includes('len(sys.argv)') && 
+         pythonCode.includes('sys.argv[1]'))
+      )
+
+      // Validate requirements
+      const errors: string[] = []
+
+      if (!hasUrlArg) {
+        errors.push("Script must accept exactly one URL argument (using argparse or sys.argv)")
+      }
+
+      if (!hasModelSave) {
+        errors.push("Script must save model.pkl in the working directory")
+      }
+
+      // Check for multiple arguments
+      const hasMultipleArgs = (
+        (pythonCode.includes('argparse.ArgumentParser') && 
+         (pythonCode.match(/add_argument\(/g) || []).length > 1) ||
+        (pythonCode.includes('sys.argv') && 
+         pythonCode.includes('len(sys.argv)') && 
+         !(pythonCode.includes('len(sys.argv) == 2') || 
+           pythonCode.includes('len(sys.argv) < 2') ||
+           pythonCode.includes('len(sys.argv) != 2')))
+      )
+
+      if (hasMultipleArgs) {
+        errors.push("Script must accept only one argument (the URL)")
+      }
+
+      if (errors.length > 0) {
+        setValidationStatus('invalid')
+        setValidationErrors(errors)
+        return
+      }
+
+      setValidationStatus('valid')
+      setValidationErrors([])
+      toast({
+        title: "Success",
+        description: "Task validation successful! The script meets all requirements.",
+      })
+    } catch (error) {
+      console.error("Validation error:", error)
+      setValidationStatus('invalid')
+      setValidationErrors([error instanceof Error ? error.message : "Failed to validate task"])
     } finally {
-      setIsUploading(false)
+      setIsValidating(false)
     }
   }
 
@@ -243,49 +315,44 @@ export default function TaskForm() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="dataset-file">Dataset</Label>
+                <Label htmlFor="dataset-url">Dataset URL</Label>
                 <div className="flex gap-2">
                   <Input 
-                    id="dataset-file" 
-                    type="file" 
-                    accept=".csv,.json,.txt" 
+                    id="dataset-url" 
+                    type="url" 
+                    placeholder="Enter public CSV URL"
+                    value={datasetUrl}
                     onChange={handleDatasetChange}
-                    disabled={isUploading || !!uploadedFilePath}
                   />
-                  {selectedDataset && !uploadedFilePath && (
-                    <Button
-                      type="button"
-                      size="icon"
+                  {!uploadedFilePath ? (
+                    <Button 
+                      type="button" 
                       onClick={handleUploadDataset}
-                      disabled={isUploading}
+                      disabled={isUploading || !datasetUrl}
                     >
                       {isUploading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ) : (
-                        <Upload className="h-4 w-4" />
+                        <Upload className="mr-2 h-4 w-4" />
                       )}
+                      Save URL
                     </Button>
-                  )}
-                  {uploadedFilePath && (
-                    <Button
-                      type="button"
-                      size="icon"
+                  ) : (
+                    <Button 
+                      type="button" 
                       variant="destructive"
                       onClick={handleRemoveDataset}
                       disabled={isUploading}
                     >
-                      {isUploading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <X className="h-4 w-4" />
-                      )}
+                      <X className="mr-2 h-4 w-4" />
+                      Remove
                     </Button>
                   )}
                 </div>
-                {selectedDataset && (
-                  <p className="text-sm text-muted-foreground flex items-center gap-2">
-                    {selectedDataset.name}
-                    {uploadedFilePath && <Check className="h-4 w-4 text-green-500" />}
+                {uploadedFilePath && (
+                  <p className="text-sm text-muted-foreground flex items-center">
+                    <Check className="mr-2 h-4 w-4 text-green-500" />
+                    URL saved: {uploadedFilePath}
                   </p>
                 )}
               </div>
@@ -297,19 +364,75 @@ export default function TaskForm() {
           </TabsContent>
         </Tabs>
 
-        <Button type="submit" className="w-full" disabled={isLoading || isUploading}>
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Launching Task...
-            </>
-          ) : (
-            <>
-              <Rocket className="mr-2 h-4 w-4" />
-              Launch Task
-            </>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="flex-1" 
+              onClick={handleValidateTask}
+              disabled={isValidating || isUploading}
+            >
+              {isValidating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Validating...
+                </>
+              ) : (
+                <>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Validate Task
+                </>
+              )}
+            </Button>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center">
+              {validationStatus === 'unvalidated' && (
+                <div className="w-4 h-4 rounded-full bg-yellow-400" title="Not yet validated" />
+              )}
+              {validationStatus === 'valid' && (
+                <div className="w-4 h-4 rounded-full bg-green-500" title="Valid" />
+              )}
+              {validationStatus === 'invalid' && (
+                <div className="w-4 h-4 rounded-full bg-red-500" title="Invalid" />
+              )}
+            </div>
+          </div>
+
+          <Button type="submit" className="w-full" disabled={isLoading || isUploading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Launching Task...
+              </>
+            ) : (
+              <>
+                <Rocket className="mr-2 h-4 w-4" />
+                Launch Task
+              </>
+            )}
+          </Button>
+
+          {validationErrors.length > 0 && (
+            <Card className="mt-4 border-destructive/50">
+              <CardHeader className="p-4 pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <X className="h-4 w-4 text-destructive" />
+                  Validation Errors
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <ul className="space-y-2">
+                  {validationErrors.map((error, index) => (
+                    <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
+                      <span className="text-destructive">•</span>
+                      {error}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
           )}
-        </Button>
+        </div>
       </div>
 
       {/* Main Content - Code Editor */}
