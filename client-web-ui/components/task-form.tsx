@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { toast } from "@/hooks/use-toast"
 import CodeEditor from "@/components/code-editor"
 import { apiClient } from "@/lib/api-client"
@@ -21,6 +22,7 @@ export default function TaskForm() {
   const [isValidating, setIsValidating] = useState(false)
   const [validationStatus, setValidationStatus] = useState<'unvalidated' | 'valid' | 'invalid'>('unvalidated')
   const [validationErrors, setValidationErrors] = useState<string[]>([])
+  const [showGuide, setShowGuide] = useState(false)
   const [taskName, setTaskName] = useState("")
   const [taskDescription, setTaskDescription] = useState("")
   const [pythonCode, setPythonCode] = useState(
@@ -535,11 +537,63 @@ export default function TaskForm() {
             <button 
               type="button" 
               className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setShowGuide(true)}
             >
               <HelpCircle className="h-4 w-4" />
               How to Submit a Task?
             </button>
           </div>
+
+          <Dialog open={showGuide} onOpenChange={setShowGuide}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>How to Submit a Task</DialogTitle>
+                <DialogDescription>
+                  Follow these guidelines to ensure your task is properly validated
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-6 py-4">
+                <div className="space-y-4">
+                  <h3 className="font-medium">Task Name Requirements</h3>
+                  <ul className="list-disc pl-6 space-y-2 text-sm text-muted-foreground">
+                    <li>Use only English letters, numbers, underscore (_), and hyphen (-)</li>
+                    <li>No spaces allowed</li>
+                    <li>Must be descriptive of your task</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="font-medium">Script Requirements</h3>
+                  <ul className="list-disc pl-6 space-y-2 text-sm text-muted-foreground">
+                    <li>Must accept exactly one URL argument (using argparse or sys.argv)</li>
+                    <li>Must save the trained model as <code className="bg-muted px-1 py-0.5 rounded">model.pkl</code> in the working directory</li>
+                    <li>Optional: Save metrics as <code className="bg-muted px-1 py-0.5 rounded">metrics.json</code></li>
+                    <li>Must handle the URL argument properly to load the dataset</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="font-medium">Dataset Requirements</h3>
+                  <ul className="list-disc pl-6 space-y-2 text-sm text-muted-foreground">
+                    <li>Must provide a valid CSV file URL</li>
+                    <li>URL must end with <code className="bg-muted px-1 py-0.5 rounded">.csv</code></li>
+                    <li>CSV must contain a 'target' column for training</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="font-medium">Validation Process</h3>
+                  <ol className="list-decimal pl-6 space-y-2 text-sm text-muted-foreground">
+                    <li>Enter a valid task name</li>
+                    <li>Provide your Python script</li>
+                    <li>Enter a valid CSV dataset URL</li>
+                    <li>Click "Validate Task" to check requirements</li>
+                    <li>Once validated, click "Launch Task" to submit</li>
+                  </ol>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
