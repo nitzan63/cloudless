@@ -3,3 +3,4 @@ __pycache__
 local-storage
 .env
 files
+my_notes.md
