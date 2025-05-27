@@ -158,24 +158,30 @@ export default function TaskList({ initialTasks }: TaskListProps) {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Created:</span>
-                    <span>{formatDate(task.createdAt)}</span>
+                    <span>{formatDate(task.creation_time)}</span>
                   </div>
 
-                  {task.completedAt && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Completed:</span>
-                      <span>{formatDate(task.completedAt)}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Created By:</span>
+                    <span>{task.created_by}</span>
+                  </div>
 
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Size:</span>
-                    <span>{task.code ? `${(task.code.length / 1024).toFixed(2)} KB` : 'N/A'}</span>
+                    <span className="text-muted-foreground">Workers:</span>
+                    <span>{task.requested_workers_amount}</span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">File:</span>
+                    <span className="truncate max-w-[200px]" title={task.main_file_name}>
+                      {task.main_file_name}
+                    </span>
                   </div>
                 </div>
               </CardContent>
 
               <CardFooter className="flex justify-between pt-3">
+                {/* Temporarily disabled buttons
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm" onClick={() => setSelectedTask(task)}>
@@ -185,8 +191,8 @@ export default function TaskList({ initialTasks }: TaskListProps) {
                   </DialogTrigger>
                   <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>{selectedTask?.name}</DialogTitle>
-                      <DialogDescription>{selectedTask?.description || "No description provided"}</DialogDescription>
+                      <DialogTitle>{selectedTask?.main_file_name}</DialogTitle>
+                      <DialogDescription>Created by {selectedTask?.created_by}</DialogDescription>
                     </DialogHeader>
                     <div className="mt-4 space-y-4">
                       <div className="space-y-2">
@@ -195,21 +201,14 @@ export default function TaskList({ initialTasks }: TaskListProps) {
                           <div className="text-muted-foreground">Status:</div>
                           <div>{selectedTask && getStatusBadge(selectedTask.status)}</div>
                           <div className="text-muted-foreground">Created:</div>
-                          <div>{selectedTask && formatDate(selectedTask.createdAt)}</div>
-                          {selectedTask?.completedAt && (
-                            <>
-                              <div className="text-muted-foreground">Completed:</div>
-                              <div>{formatDate(selectedTask.completedAt)}</div>
-                            </>
-                          )}
+                          <div>{selectedTask && formatDate(selectedTask.creation_time)}</div>
+                          <div className="text-muted-foreground">Workers:</div>
+                          <div>{selectedTask?.requested_workers_amount}</div>
+                          <div className="text-muted-foreground">Script Path:</div>
+                          <div className="truncate" title={selectedTask?.script_path}>
+                            {selectedTask?.script_path}
+                          </div>
                         </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Python Code</h4>
-                        <pre className="bg-muted p-4 rounded-md overflow-x-auto text-sm">
-                          <code>{selectedTask?.code}</code>
-                        </pre>
                       </div>
                     </div>
                   </DialogContent>
@@ -239,6 +238,7 @@ export default function TaskList({ initialTasks }: TaskListProps) {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
+                */}
               </CardFooter>
             </Card>
           ))}

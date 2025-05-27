@@ -8,14 +8,12 @@ export interface TaskSpecs {
 
 export interface Task {
   id: string
-  name: string
-  description: string
-  code: string
-  datasetRef: string
-  specs: TaskSpecs
-  status: "pending" | "running" | "completed" | "failed"
-  createdAt: string
-  completedAt?: string
+  creation_time: string
+  created_by: string
+  requested_workers_amount: number
+  script_path: string
+  main_file_name: string
+  status: "pending" | "running" | "completed" | "failed" | "submitted"
 }
 
 // In a real application, this would be stored in a database
