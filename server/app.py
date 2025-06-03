@@ -28,7 +28,18 @@ def health_check():
 
 @app.route('/api/tasks', methods=['POST'])
 def submit_task():
-    """Submit a new task for execution"""
+    """
+    Submit a new task for execution
+
+    This endpoint accepts a POST request with a file and form data. The file is uploaded to a storage service, and the form data is used to create a new task in the task service. The task is then sent to a message queue for processing.
+
+    :param file: The file to be uploaded and associated with the task. python script.
+    :param created_by: The user who created the task. always will be "admin" # TODO: change to the actual user when we have a user service
+    :param requested_workers_amount: The number of workers requested for the task. default is 1. TODO: change to the actual number of workers 
+    :param status: The initial status of the task. always will be "submitted"
+    # TODO: think about adding a URL for the dataset as a parameter
+    :return: A JSON response indicating the success or failure of the task submission, including the task details.
+    """
     try:
         data = request.form.to_dict()
 
