@@ -7,8 +7,8 @@ from services.task_service import TaskService
 from services.livy_service import LivyService
 load_dotenv()
 
-task_service = TaskService(os.environ.get('DATA_SERVICE_API_URL', 'http://localhost:8002'))
-livy_service = LivyService(os.environ.get('LIVY_API_URL', 'http://localhost:8998'))
+task_service = TaskService(os.environ.get('DATA_SERVICE_URL', 'http://localhost:8002'))
+livy_service = LivyService(os.environ.get('LIVY_URL', 'http://localhost:8998'))
 INTERVAL_SECONDS = int(os.environ.get('INTERVAL_SECONDS', 5))
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')

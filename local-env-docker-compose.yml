@@ -95,6 +95,21 @@ services:
     volumes:
       - shared-data:/app/scripts
 
+  job-update-service:
+    image: job-update-service:latest
+    container_name: job-update-service
+    build:
+      context: ./job_update_service
+      dockerfile: Dockerfile
+    environment:
+      - DATA_SERVICE_URL=http://data-service:8002
+      - LIVY_URL=http://livy:8998
+      - INTERVAL_SECONDS=30
+    depends_on:
+      - data-service
+      - livy
+    networks:
+      - cloudless-net
   spark-master:
     image: bitnami/spark:latest
     container_name: spark-master
