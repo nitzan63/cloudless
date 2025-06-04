@@ -64,7 +64,7 @@ def submit_task():
         # Use service to create task
         task = task_service.create_task(
             {
-                **{key: val for key, val in data.items() if key in ['created_by', 'requested_workers_amount', 'status']},
+                **{key: val for key, val in data.items() if key in ['created_by', 'requested_workers_amount']},
                 **{key: val for key, val in result.items() if key in ['file_path', 'file_name']}
             }
         )

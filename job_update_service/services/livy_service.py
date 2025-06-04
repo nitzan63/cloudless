@@ -34,7 +34,7 @@ class LivyService(BaseService):
             self._pretty_print(resp)
         return resp.json().get("id")
 
-    def get_batch_status(self, batch_id, verbose=True):
+    def get_batch_status(self, batch_id, verbose=False):
         """Get the status of a batch job."""
         resp = requests.get(f"{self.base_url}/batches/{batch_id}")
         if verbose:
@@ -42,13 +42,13 @@ class LivyService(BaseService):
             self._pretty_print(resp)
         return resp
 
-    def get_batch_logs(self, batch_id, verbose=True):
+    def get_batch_logs(self, batch_id, verbose=False):
         """Get the logs of a batch job."""
         resp = requests.get(f"{self.base_url}/batches/{batch_id}/log")
         if verbose:
             print(f"=== Logs of Batch {batch_id} ===")
             self._pretty_print(resp)
-        return resp
+        return json.dumps(resp.json(), indent=2)
 
     def kill_batch(self, batch_id, verbose=True):
         """Kill a batch job."""

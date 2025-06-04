@@ -1,27 +1,112 @@
-version: "3.9"
 services:
   db:
     image: postgres:16
+    container_name: db
     environment:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
       POSTGRES_DB: mydatabase
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - cloudless-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d mydatabase"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  data-service:
+    image: data-service:latest
+    container_name: data-service
+    build:
+      context: ./data_service
+      dockerfile: Dockerfile
+    environment:
+      - PORT=8002
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_DB=mydatabase
+      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=db
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - cloudless-net
 
   rabbitmq:
     image: rabbitmq:3-management
-    ports:
-      - "5672:5672"
-      - "15672:15672"
+    container_name: rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: user
       RABBITMQ_DEFAULT_PASS: pass
+    networks:
+      - cloudless-net
+
+  cloudless-main-server:
+    image: cloudless-main-server:latest
+    container_name: cloudless-main-server
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    environment:
+      - PORT=8000
+      - DATA_SERVICE_URL=http://data-service:8002
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=user
+      - RABBITMQ_PASS=pass
+    depends_on:
+      - data-service
+      - rabbitmq
+    ports:
+      - "8000:8000"
+    networks:
+      - cloudless-net
+
+  task-executor:
+    image: task-executor:latest
+    container_name: task-executor
+    build:
+      context: ./task_executor
+      dockerfile: Dockerfile
+    environment:
+      - DATA_SERVICE_URL=http://data-service:8002
+      - LIVY_URL=http://livy:8998
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=user
+      - RABBITMQ_PASS=pass
+      - SHARED_SCRIPTS_PATH=/app/scripts/
+    depends_on:
+      - data-service
+      - livy
+      - rabbitmq
+    networks:
+      - cloudless-net
+    volumes:
+      - shared-data:/app/scripts
+
+  job-update-service:
+    image: job-update-service:latest
+    container_name: job-update-service
+    build:
+      context: ./job_update_service
+      dockerfile: Dockerfile
+    environment:
+      - DATA_SERVICE_URL=http://data-service:8002
+      - LIVY_URL=http://livy:8998
+      - INTERVAL_SECONDS=30
+    depends_on:
+      - data-service
+      - livy
+    networks:
+      - cloudless-net
 
   spark-master:
     image: bitnami/spark:latest
+    container_name: spark-master
     environment:
       - SPARK_MODE=master
       - PYSPARK_PYTHON=python
@@ -33,8 +118,7 @@ services:
       - "8080:8080"
       - "6066:6066"
     networks:
-      - spark-net
-
+      - cloudless-net
   livy:
     image: livy:latest
     build:
@@ -46,16 +130,16 @@ services:
       - LIVY_SPARK_MASTER=spark://spark-master:7077
     depends_on:
       - spark-master
-    ports:
-      - "8998:8998"
+      - spark-worker
     networks:
-      - spark-net
+      - cloudless-net
     volumes:
-      - /home/arad/scripts:/scripts
+      - shared-data:/app/scripts
 
 networks:
-  spark-net:
+  cloudless-net:
     driver: bridge
 
 volumes:
   postgres_data:
+  shared-data:

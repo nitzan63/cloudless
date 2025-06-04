@@ -17,17 +17,19 @@ class TaskService:
                 requested_workers_amount INTEGER NOT NULL,
                 script_path TEXT NOT NULL,
                 main_file_name TEXT NOT NULL,
-                status TEXT NOT NULL
+                status TEXT NOT NULL,
+                batch_job_id INTEGER,
+                logs TEXT
             );
         """)
 
-    def create_task(self, created_by, requested_workers_amount, status, file_path, file_name):
+    def create_task(self, created_by, requested_workers_amount, file_path, file_name):
         task_id = str(uuid.uuid4())
         creation_time = datetime.utcnow()
         self.db.execute("""
-            INSERT INTO task (id, creation_time, created_by, requested_workers_amount, script_path, main_file_name, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (task_id, creation_time, created_by, requested_workers_amount, file_path, file_name, status))
+            INSERT INTO task (id, creation_time, created_by, requested_workers_amount, script_path, main_file_name, status, batch_job_id, logs)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (task_id, creation_time, created_by, requested_workers_amount, file_path, file_name, 'submitted', None, None))
         return task_id
 
     def get_task(self, task_id):
@@ -48,7 +50,7 @@ class TaskService:
         return file_data
 
     def update_task(self, task_id, **kwargs):
-        allowed_fields = {"created_by", "requested_workers_amount", "script_path", "main_file_name", "status"}
+        allowed_fields = {"created_by", "requested_workers_amount", "script_path", "main_file_name", "status", "batch_job_id", "logs"}
         fields = []
         values = []
         for key, value in kwargs.items():
@@ -68,10 +70,19 @@ class TaskService:
         return True
 
     def list_tasks(self):
-        rows = self.db.execute("SELECT * FROM task")
-        if not rows:
-            return []
         with self.db.conn.cursor() as cur:
             cur.execute("SELECT * FROM task")
+            rows = cur.fetchall()
+            if not rows:
+                return []
             columns = [desc[0] for desc in cur.description]
-        return [dict(zip(columns, row)) for row in rows]
+            return [dict(zip(columns, row)) for row in rows]
+
+    def get_tasks_not_finished(self):
+        with self.db.conn.cursor() as cur:
+            cur.execute("SELECT * FROM task WHERE status not in ('completed', 'failed') and batch_job_id is not null")
+            rows = cur.fetchall()
+            if not rows:
+                return []
+            columns = [desc[0] for desc in cur.description]
+            return [dict(zip(columns, row)) for row in rows]
