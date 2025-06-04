@@ -32,9 +32,9 @@ def get_livy_status(batch_id):
         logging.error(f"Error fetching Livy status for batch {batch_id}: {e}")
         return None
 
-def update_task_status(task_id, new_status):
+def update_task_status(task_id, new_status, logs):
     try:
-        task_service.update_task(task_id, {"status": new_status})
+        task_service.update_task(task_id, {"status": new_status, "logs": logs})
         logging.info(f"Task {task_id} status updated: {new_status}")
     except Exception as e:
         logging.error(f"Error updating task {task_id} status: {e}")
@@ -44,14 +44,17 @@ def job():
     for task in tasks:
         batch_id = task.get('batch_job_id')
         task_id = task.get('id')
-        if not batch_id or not task_id:
+        if (batch_id == None) or (task_id == None):
             logging.warning(f"Task missing batch_id or task_id: {task}")
             continue
         status = get_livy_status(batch_id)
-        if status in ("dead", "error", "killed"):
-            update_task_status(task_id, "failed")
-        if status == 'success':
-            update_task_status(task_id, "completed")
+        if status in ("dead", "error", "killed", "success"):
+            if status in ("dead", "error", "killed"):
+                db_status = "failed"
+            elif status == 'success':
+                db_status = 'completed'
+            logs = livy_service.get_batch_logs(batch_id)
+            update_task_status(task_id, db_status, logs)
 
 if __name__ == '__main__':
     scheduler = BlockingScheduler()

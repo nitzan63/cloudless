@@ -12,6 +12,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - cloudless-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   data-service:
     image: data-service:latest
@@ -27,7 +32,8 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_HOST=db
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "8002:8002"
     networks:

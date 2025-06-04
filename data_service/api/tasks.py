@@ -28,7 +28,7 @@ def get_task_to_execute(task_id: str):
         raise HTTPException(status_code=404, detail="Task not found")
     return file_data
 
-@router.put("/{task_id}")
+@router.patch("/{task_id}")
 def update_task(task_id: str, payload: dict):
     updated = task_service.update_task(task_id, **payload)
     return {"status": "updated" if updated else "not modified"}
@@ -41,3 +41,7 @@ def delete_task(task_id: str):
 @router.get("/")
 def list_tasks():
     return task_service.list_tasks()
+
+@router.get("/not-finished/all")
+def get_tasks_not_finished():
+    return task_service.get_tasks_not_finished()

@@ -8,5 +8,5 @@ logger = logging.getLogger(__name__)
 def process(task_id: str):
     logger.info(f"------------Start Processing {task_id}------------")
     filename = fetch_task(task_id)
-    submit_to_spark(filename)
+    submit_to_spark(filename, task_id)
     logger.info(f"------------End Processing {task_id}------------")
