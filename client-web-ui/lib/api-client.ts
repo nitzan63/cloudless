@@ -17,8 +17,10 @@ class ApiClient {
 
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
-      const error: ApiError = await response.json()
-      throw new Error(error.message || 'An error occurred')
+      const errorData = await response.json()
+      // Handle both error formats: {error: string} and {message: string}
+      const errorMessage = errorData.error || errorData.message || 'An error occurred'
+      throw new Error(errorMessage)
     }
     return response.json()
   }
@@ -35,11 +37,21 @@ class ApiClient {
     formData.append('status', 'submitted')  // Default value
     formData.append('name', taskName)  // Add task name
 
+    console.log('Uploading to:', `${this.baseUrl}${API_CONFIG.endpoints.uploadFile}`)  // Debug log
+
     const response = await fetch(`${this.baseUrl}${API_CONFIG.endpoints.uploadFile}`, {
       method: 'POST',
       body: formData,
     })
-    const result = await this.handleResponse<any>(response)
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      console.error('Upload error:', errorData)  // Debug log
+      throw new Error(errorData.error || errorData.message || 'Failed to upload file')
+    }
+
+    const result = await response.json()
+    console.log('Upload result:', result)  // Debug log
     return {
       status: 'success',
       file_path: result.task?.file_path || '',

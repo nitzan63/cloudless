@@ -7,7 +7,7 @@ stop-services:
 	docker-compose down
 
 local-env:
-	docker-compose -f local-env-docker-compose.yml up -d --build
+	docker compose -f local-env-docker-compose.yml up -d --build
 
 stop-local-env:
 	docker-compose -f local-env-docker-compose.yml down -v
