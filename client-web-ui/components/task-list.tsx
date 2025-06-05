@@ -25,7 +25,7 @@ interface TaskListProps {
 
 export default function TaskList({ initialTasks }: TaskListProps) {
   const router = useRouter()
-  const [tasks, setTasks] = useState<Task[]>(initialTasks)
+  const tasks = initialTasks
   const [runningTaskIds, setRunningTaskIds] = useState<Set<string>>(new Set())
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
 

@@ -76,32 +76,69 @@ export default function TaskForm() {
       return
     }
 
-    setValidationStatus('valid')
-    setValidationErrors([])
-    toast({
-      title: "Success",
-      description: "Task validation successful! The script meets all requirements.",
-    })
+    try {
+      const content = await selectedFile.text()
+      
+      // Basic Python validation
+      const errors: string[] = []
+      
+      // Check for basic Python syntax
+      if (!content.trim()) {
+        errors.push("File is empty")
+      }
+      
+      // Check for common Python imports
+      if (!content.includes('import') && !content.includes('from')) {
+        errors.push("No imports found. Make sure to import required libraries")
+      }
+      
+      // Check for main function or entry point
+      if (!content.includes('def main') && !content.includes('if __name__')) {
+        errors.push("No main function or entry point found")
+      }
+
+      if (errors.length > 0) {
+        setValidationStatus('invalid')
+        setValidationErrors(errors)
+        toast({
+          title: "Validation Failed",
+          description: errors.join('\n'),
+          variant: "destructive",
+        })
+      } else {
+        setValidationStatus('valid')
+        setValidationErrors([])
+        toast({
+          title: "Success",
+          description: "Task validation successful! The script meets all requirements.",
+        })
+      }
+    } catch (error) {
+      setValidationStatus('invalid')
+      setValidationErrors(['Failed to validate file'])
+      toast({
+        title: "Error",
+        description: "Failed to validate file",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedFile) return
+    if (!selectedFile || !taskName) return
 
     try {
-      const fileContent = await selectedFile.text()
-      const task = await apiClient.createTask({
-        name: taskName,
-        description: 'Spark task', // We can make this dynamic later
-        code: fileContent,
-        datasetRef: '', // We'll handle this later
-        specs: {
-          cpuCores: 1,
-          memoryGB: 1,
-          storageGB: 1,
-        },
-      })
+      setIsLoading(true)
+      const formData = new FormData()
+      formData.append('file', selectedFile)
+      formData.append('created_by', 'admin')
+      formData.append('requested_workers_amount', '1')
+      formData.append('status', 'submitted')
+      formData.append('name', taskName)
 
+      const result = await apiClient.uploadFile(selectedFile, taskName)
+      
       toast({
         title: "Success",
         description: "Task created successfully!",
@@ -112,9 +149,11 @@ export default function TaskForm() {
       console.error('Error creating task:', error)
       toast({
         title: "Error",
-        description: "Failed to create task",
+        description: error instanceof Error ? error.message : "Failed to create task",
         variant: "destructive",
       })
+    } finally {
+      setIsLoading(false)
     }
   }
 
