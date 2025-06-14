@@ -10,10 +10,7 @@ RUN rm -rf /var/lib/apt/lists/*
 
 COPY ./wg0.conf /etc/wireguard/wg0.conf
 
-COPY run_spark_worker.sh /run.sh
+COPY ./run_spark_worker.sh /run.sh
 RUN chmod +x /run.sh
 
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
+CMD ["sh", "-c", "wg-quick up wg0 && /run.sh"]
