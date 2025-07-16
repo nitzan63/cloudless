@@ -19,6 +19,11 @@ def get_provider(user_id: str):
         raise HTTPException(status_code=404, detail="Not found")
     return provider
 
+@router.get("/")
+def get_all_providers():
+    providers = provider_service.get_all_providers()
+    return providers
+
 @router.post("/{provider_id}/heartbeat")
 def heartbeat(provider_id: int):
     provider_service.update_last_connection(provider_id)

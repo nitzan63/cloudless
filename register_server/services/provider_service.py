@@ -14,6 +14,10 @@ class ProviderService(BaseService):
         response = requests.get(f"{self.base_url}/providers/{user_id}")
         return self._handle_response(response)
 
+    def get_all_providers(self):
+        response = requests.get(f"{self.base_url}/providers/")
+        return self._handle_response(response)
+
     def update_last_connection(self, provider_id: int):
         response = requests.post(f"{self.base_url}/providers/{provider_id}/touch")
         return self._handle_response(response)

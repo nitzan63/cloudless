@@ -64,6 +64,14 @@ class ProviderService:
         provider_row = result[0]
         return dict(zip(columns, provider_row))
 
+    def get_all_providers(self):
+        query = """
+        SELECT id, network_ip, user_id, last_connection_time, public_key
+        FROM provider;
+        """
+        result = self.db.execute(query)
+        return result
+
     def __del__(self):
         if hasattr(self, 'db'):
             self.db.close()
