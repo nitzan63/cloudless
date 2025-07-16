@@ -72,16 +72,11 @@ def details():
 @app.route("/trigger", methods=["GET"])
 def trigger():
     try:
-        created_provider = provider_service.get_provider("admin")
+        wireguard_service.fetch_providers_and_generate_conf(conf_path="test_generated_config_files/wg0.conf")
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-    return jsonify({
-        "server_public_key": server_config.SERVER_PUBLIC_KEY,
-        "server_endpoint": server_config.SERVER_ENDPOINT,
-        "allowed_ips": server_config.ALLOWED_IPS,
-        "client_ip": created_provider['network_ip']
-    })
+    return jsonify({"status": "success"})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8001))

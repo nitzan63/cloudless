@@ -4,10 +4,12 @@ import requests
 from typing import List, Dict
 
 from services.base_service import BaseService
+from services.provider_service import ProviderService
 
 class WireguardService(BaseService):
     def __init__(self):
         super().__init__()
+        self.provider_service = ProviderService(os.environ.get('DATA_SERVICE_URL', "http://localhost:8002"))
 
     def generate_wg_conf(self, providers: List[Dict], conf_path: str = "/etc/wireguard/wg0.conf"):
         """
@@ -20,8 +22,8 @@ class WireguardService(BaseService):
             peer = f"""
 [Peer]
 PublicKey = {p['public_key']}
-AllowedIPs = {p['allowed_ip']}
-Endpoint = {p.get('endpoint', '')}
+AllowedIPs = 0.0.0.0/0
+Endpoint = {p.get('network_ip', '')}/32
 PersistentKeepalive = 25
 """
             conf.append(peer.strip())
@@ -52,14 +54,13 @@ PersistentKeepalive = 25
             f.write(conf)
 
 
-    def fetch_providers_and_generate_conf(self, api_url: str, conf_path: str = "/etc/wireguard/wg0.conf", interface_config: str = None):
+    def fetch_providers_and_generate_conf(self, conf_path: str = "/etc/wireguard/wg0.conf"):
         """
         Fetches all providers from API and generates wg0.conf
         """
-        resp = requests.get(f"{api_url}/providers/")
-        resp.raise_for_status()
-        providers = resp.json()
-        self.generate_wg_conf(providers, conf_path, interface_config)
+        providers = self.provider_service.get_all_providers()
+        print(providers, type(providers))
+        self.generate_wg_conf(providers, conf_path)
 
     def add_provider_to_conf(self, provider: Dict, conf_path: str = "/etc/wireguard/wg0.conf"):
         """

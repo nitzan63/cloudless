@@ -70,7 +70,8 @@ class ProviderService:
         FROM provider;
         """
         result = self.db.execute(query)
-        return result
+        columns = ["id", "network_ip", "user_id", "last_connection_time", "public_key"]
+        return [dict(zip(columns, row)) for row in result]
 
     def __del__(self):
         if hasattr(self, 'db'):
