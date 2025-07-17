@@ -129,7 +129,7 @@ services:
   livy:
     image: livy:latest
     build:
-      context: ./spark/livy
+      context: ./provider/spark/livy
       dockerfile: livy.Dockerfile
     container_name: livy
     environment:
