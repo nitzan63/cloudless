@@ -30,14 +30,13 @@ PersistentKeepalive = 25
         with open(conf_path, 'w') as f:
             f.write('\n\n'.join(conf))
 
-    def generate_client_wg_conf(self, client_private_key: str, client_ip: str, conf_path: str = "wg0-client.conf"):
+    def generate_client_wg_conf(self, client_private_key: str, client_ip: str):
         """
         Generates a WireGuard client configuration file.
 
         Args:
             client_private_key (str): The client's private key.
             client_ip (str): The IP address assigned to the client (e.g., "10.0.0.2/32").
-            conf_path (str): Path to write the client config file.
         """
         conf = f"""[Interface]
 PrivateKey = {client_private_key}
@@ -50,8 +49,8 @@ Endpoint = {os.environ.get('SERVER_ENDPOINT')}
 AllowedIPs = 10.10.0.0/24
 PersistentKeepalive = 25
 """
-        with open(conf_path, "w") as f:
-            f.write(conf)
+        
+        return conf
 
 
     def fetch_providers_and_generate_conf(self, conf_path: str = "/etc/wireguard/wg0.conf"):

@@ -25,17 +25,23 @@ def register():
         #     return jsonify({"error": "Missing or invalid authorization token"}), 401
         # user_id = auth_header.split(' ')[1]
         user_id = "admin"
+
+        # check if user exists
+        try:
+            user = provider_service.get_provider(user_id)
+            if user:
+                return jsonify({"status": "success", "user": user}), 200
+        except Exception:
+            pass
+        
         private_key, public_key = wireguard_service.generate_keypair()
 
         created_provider = provider_service.create_provider(user_id, public_key)
 
-        wireguard_service.generate_client_wg_conf(
+        conf = wireguard_service.generate_client_wg_conf(
             private_key, 
-            created_provider['ip'], 
-            "test_generated_config_files/wg0-client.conf"
+            created_provider['ip']
         )
-
-        # wireguard_service.apply_wg_changes()
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -44,7 +50,8 @@ def register():
         "server_public_key": server_config.SERVER_PUBLIC_KEY,
         "server_endpoint": server_config.SERVER_ENDPOINT,
         "allowed_ips": server_config.ALLOWED_IPS,
-        "client_ip": created_provider['ip']
+        "client_ip": created_provider['ip'],
+        "conf": conf
     })
 
 
@@ -73,6 +80,7 @@ def details():
 def trigger():
     try:
         wireguard_service.fetch_providers_and_generate_conf(conf_path="test_generated_config_files/wg0.conf")
+        # wireguard_service.apply_wg_changes()
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
