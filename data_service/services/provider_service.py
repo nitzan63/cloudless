@@ -27,11 +27,11 @@ class ProviderService:
         """
         result = self.db.execute(query)
         if not result:
-            return "10.0.0.1"
+            return "10.10.0.1"
         
         last_ip = result[0][0]
         last_octet = int(last_ip.split('.')[-1])
-        return f"10.0.0.{last_octet + 1}"
+        return f"10.10.0.{last_octet + 1}"
 
     def create_provider_with_ip(self, user_id: str, public_key: str) -> str:
         client_ip = self._get_next_available_ip()
@@ -45,7 +45,7 @@ class ProviderService:
 
     def update_last_connection(self, provider_id: int):
         query = """
-        UPDATE provider 
+        UPDATE provider
         SET last_connection_time = %s
         WHERE id = %s;
         """

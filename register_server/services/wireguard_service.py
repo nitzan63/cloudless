@@ -2,6 +2,7 @@ import os
 import subprocess
 import requests
 from typing import List, Dict
+import shutil
 
 from services.base_service import BaseService
 from services.provider_service import ProviderService
@@ -9,14 +10,20 @@ from services.provider_service import ProviderService
 class WireguardService(BaseService):
     def __init__(self):
         super().__init__()
+        self.config_path = os.environ.get('CONFIG_PATH', "/etc/wireguard/wg0.conf")
+        self.server_public_key = os.environ.get('SERVER_PUBLIC_KEY')
+        self.server_private_key = os.environ.get('SERVER_PRIVATE_KEY')
+        self.server_network_ip = os.environ.get('SERVER_NETWORK_IP', "10.10.0.1")
+        self.server_endpoint = os.environ.get('SERVER_ENDPOINT')
+        self.server_port = os.environ.get('SERVER_PORT', 51820)
         self.provider_service = ProviderService(os.environ.get('DATA_SERVICE_URL', "http://localhost:8002"))
 
-    def generate_wg_conf(self, providers: List[Dict], conf_path: str = "/etc/wireguard/wg0.conf"):
+    def generate_wg_conf(self, providers: List[Dict]):
         """
         Generates wg0.conf with all connected peers.
         providers: list of dicts with keys: public_key, allowed_ip, endpoint
         """
-        interface_config = f"""[Interface]\nPrivateKey = {os.environ.get('SERVER_PRIVATE_KEY')}\nAddress = 10.0.0.1/24\nListenPort = 51820\n"""
+        interface_config = f"""[Interface]\nPrivateKey = {self.server_private_key}\nAddress = {self.server_network_ip}/24\nListenPort = {self.server_port}\n"""
         conf = [interface_config.strip()]
         for p in providers:
             peer = f"""
@@ -27,7 +34,7 @@ Endpoint = {p.get('network_ip', '')}/32
 PersistentKeepalive = 25
 """
             conf.append(peer.strip())
-        with open(conf_path, 'w') as f:
+        with open(self.config_path, 'w') as f:
             f.write('\n\n'.join(conf))
 
     def generate_client_wg_conf(self, client_private_key: str, client_ip: str):
@@ -44,8 +51,8 @@ Address = {client_ip}/24
 DNS = 1.1.1.1
 
 [Peer]
-PublicKey = {os.environ.get('SERVER_PUBLIC_KEY')}
-Endpoint = {os.environ.get('SERVER_ENDPOINT')}
+PublicKey = {self.server_public_key}
+Endpoint = {self.server_endpoint}
 AllowedIPs = 10.10.0.0/24
 PersistentKeepalive = 25
 """
@@ -53,26 +60,26 @@ PersistentKeepalive = 25
         return conf
 
 
-    def fetch_providers_and_generate_conf(self, conf_path: str = "/etc/wireguard/wg0.conf"):
+    def fetch_providers_and_generate_conf(self):
         """
         Fetches all providers from API and generates wg0.conf
         """
         providers = self.provider_service.get_all_providers()
         print(providers, type(providers))
-        self.generate_wg_conf(providers, conf_path)
+        self.generate_wg_conf(providers)
 
-    def add_provider_to_conf(self, provider: Dict, conf_path: str = "/etc/wireguard/wg0.conf"):
+    def add_provider_to_conf(self, provider: Dict):
         """
         Adds a single provider (peer) to wg0.conf
         """
         peer = f"""
 [Peer]
 PublicKey = {provider['public_key']}
-AllowedIPs = {provider['allowed_ip']}
-Endpoint = {provider.get('endpoint', '')}
+AllowedIPs = 0.0.0.0/0
+Endpoint = {self.server_endpoint}
 PersistentKeepalive = 25
 """
-        with open(conf_path, 'a') as f:
+        with open(self.config_path, 'a') as f:
             f.write('\n' + peer.strip() + '\n')
 
     def remove_provider_from_conf(self, public_key: str, conf_path: str = "/etc/wireguard/wg0.conf"):
@@ -104,10 +111,16 @@ PersistentKeepalive = 25
 
     def apply_wg_changes(self, interface: str = "wg0"):
         """
-        Applies changes to the local WireGuard interface
+        Applies changes to the local WireGuard interface with zero downtime if possible.
+        This reloads the configuration using 'wg syncconf' to avoid interface downtime.
         """
-        subprocess.run(["wg-quick", "down", interface], check=False)
-        subprocess.run(["wg-quick", "up", interface], check=True)
+        wg_bin = shutil.which("wg")
+        if not wg_bin:
+            raise RuntimeError("wg binary not found")
+
+        conf_path = f"/etc/wireguard/{interface}.conf"
+        # Use 'wg syncconf' to apply changes without bringing the interface down
+        subprocess.run([wg_bin, "syncconf", interface, conf_path], check=True)
 
     def generate_keypair(self):
         """
