@@ -4,6 +4,11 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QPalette, QColor, QIcon
+from services.register_service import RegisterService
+import os
+
+register_service = RegisterService(os.environ.get('REGISTER_SERVICE_URL', "http://localhost:8001"))
+config_path = os.environ.get('CONFIG_PATH', "")
 
 # --- Dark Mode Palette ---
 def set_dark_mode(app):
@@ -66,7 +71,7 @@ class LoginPage(QWidget):
         field_box.setSpacing(18)
         layout.addLayout(field_box)
         btn_login = QPushButton("Login")
-        btn_login.clicked.connect(switch_to_main)
+        btn_login.clicked.connect(self.handle_login)
         btn_register = QPushButton("Register")
         btn_register.clicked.connect(switch_to_register)
         btn_row = QHBoxLayout()
@@ -76,6 +81,15 @@ class LoginPage(QWidget):
         layout.addLayout(btn_row)
         layout.addStretch()
         self.setLayout(layout)
+        self._switch_to_main = switch_to_main
+
+    def handle_login(self):
+        username = self.username.text()
+        password = self.password.text()
+        # Call the register_service.login method (placeholder logic)
+        # result = register_service.login(username, password)
+        # TODO: Add error handling based on result
+        self._switch_to_main()
 
 # --- Register Page ---
 class RegisterPage(QWidget):
@@ -102,7 +116,7 @@ class RegisterPage(QWidget):
         field_box.setSpacing(18)
         layout.addLayout(field_box)
         btn_register = QPushButton("Register")
-        btn_register.clicked.connect(lambda: switch_to_login())
+        btn_register.clicked.connect(self.handle_register)
         btn_back = QPushButton("Back to Login")
         btn_back.clicked.connect(lambda: switch_to_login())
         btn_row = QHBoxLayout()
@@ -112,6 +126,18 @@ class RegisterPage(QWidget):
         layout.addLayout(btn_row)
         layout.addStretch()
         self.setLayout(layout)
+        self._switch_to_login = switch_to_login
+
+    def handle_register(self):
+        username = self.username.text()
+        password = self.password.text()
+        confirm_password = self.confirm_password.text()
+        # Call the register_service.register_user method (placeholder logic)
+        result = register_service.register()
+        with open(config_path, 'w') as f:
+            f.write(result['conf'])
+        # TODO: Add error handling based on result
+        self._switch_to_login()
 
 # --- Main Resource Page ---
 class ResourcePage(QWidget):

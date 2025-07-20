@@ -24,7 +24,7 @@ def register():
         # if not auth_header or not auth_header.startswith('Bearer '):
         #     return jsonify({"error": "Missing or invalid authorization token"}), 401
         # user_id = auth_header.split(' ')[1]
-        user_id = "admin"
+        user_id = "admin2"
 
         # check if user exists
         try:
