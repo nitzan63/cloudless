@@ -3,6 +3,9 @@ import subprocess
 import server_config
 import os
 import logging
+import requests
+from flask import g
+from services.auth_service import AuthService
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -15,20 +18,39 @@ from services.wireguard_service import WireguardService
 provider_service = ProviderService(os.environ.get('DATA_SERVICE_URL', "http://localhost:8002"))
 wireguard_service = WireguardService()
 
+auth_service = AuthService(os.environ.get('AUTH_SERVICE_URL', 'http://localhost:8003'))
+
+@app.before_request
+def authenticate_request():
+    # Only skip for endpoints that don't require auth (e.g., health checks)
+    if request.endpoint in ('static',):
+        return
+    if request.path in ('/health',):
+        return
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'error': 'Missing or invalid authorization token'}), 401
+    token = auth_header.split(' ')[1]
+    try:
+        data = auth_service.validate_token(token)
+        if not data:
+            return jsonify({'error': 'Invalid or expired token'}), 401
+        g.username = data.get('username')
+        g.user_type = data.get('type')
+    except Exception as e:
+        return jsonify({'error': f'Auth service error: {str(e)}'}), 401
+
 
 @app.route("/register", methods=["GET"])
 def register():
     try:
-        # # Get token from Authorization header
-        # auth_header = request.headers.get('Authorization')
-        # if not auth_header or not auth_header.startswith('Bearer '):
-        #     return jsonify({"error": "Missing or invalid authorization token"}), 401
-        # user_id = auth_header.split(' ')[1]
-        user_id = "admin2"
+        username = g.username
+        print(username)
+        return {}, 200
 
         # check if user exists
         try:
-            user = provider_service.get_provider(user_id)
+            user = provider_service.get_provider(username)
             if user:
                 return jsonify({"status": "success", "user": user}), 200
         except Exception:

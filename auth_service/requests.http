@@ -1,0 +1,31 @@
+### Register a producer
+POST http://localhost:8003/register
+Content-Type: application/json
+
+{
+  "username": "producer1",
+  "password": "testpassword",
+  "type": "producer"
+}
+
+### Register a submitter
+POST http://localhost:8003/register
+Content-Type: application/json
+
+{
+  "username": "submitter1",
+  "password": "testpassword",
+  "type": "submitter"
+}
+
+### Login as producer
+POST http://localhost:8003/login
+Content-Type: application/x-www-form-urlencoded
+
+username=producer1&password=testpassword
+
+### Login as submitter
+POST http://localhost:8003/login
+Content-Type: application/x-www-form-urlencoded
+
+username=submitter1&password=testpassword

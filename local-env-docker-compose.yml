@@ -37,6 +37,22 @@ services:
     networks:
       - cloudless-net
 
+  auth-service:
+    image: auth-service:latest
+    container_name: auth-service
+    build:
+      context: ./auth_service
+      dockerfile: Dockerfile
+    environment:
+      - PORT=8003
+      - DATA_SERVICE_URL=http://data-service:8002
+    ports:
+      - "8003:8003"
+    depends_on:
+      - data-service
+    networks:
+      - cloudless-net
+
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq

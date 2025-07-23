@@ -1,0 +1,25 @@
+### Register a producer
+POST http://localhost:8002/users/register
+Content-Type: application/json
+
+{
+  "username": "producer1",
+  "password": "testpassword",
+  "type": "producer"
+}
+
+### Register a submitter
+POST http://localhost:8002/users/register
+Content-Type: application/json
+
+{
+  "username": "submitter1",
+  "password": "testpassword",
+  "type": "submitter"
+}
+
+### Fetch producer user
+GET http://localhost:8002/users/producer1
+
+### Fetch submitter user
+GET http://localhost:8002/users/submitter1
