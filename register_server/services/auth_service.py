@@ -7,8 +7,7 @@ class AuthService(BaseService):
         self.auth_service_url = auth_service_url
 
     def validate_token(self, token: str):
-        resp = requests.get(f"{self.auth_service_url}/protected-producer", headers={"Authorization": f"Bearer {token}"})
-        print(resp)
+        resp = requests.get(f"{self.auth_service_url}/protected-provider", headers={"Authorization": f"Bearer {token}"})
         if resp.status_code != 200:
             return None
         return self._handle_response(resp)

@@ -6,7 +6,9 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QPalette, QColor, QIcon
 from services.register_service import RegisterService
 import os
+from services.auth_service import AuthService
 
+auth_service = AuthService(os.environ.get('AUTH_SERVICE_URL', "http://localhost:8003"))
 register_service = RegisterService(os.environ.get('REGISTER_SERVICE_URL', "http://localhost:8001"))
 config_path = os.environ.get('CONFIG_PATH', "")
 
@@ -70,6 +72,10 @@ class LoginPage(QWidget):
         field_box.addWidget(self.password)
         field_box.setSpacing(18)
         layout.addLayout(field_box)
+        self.error_label = QLabel("")
+        self.error_label.setStyleSheet("color: red;")
+        self.error_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.error_label)
         btn_login = QPushButton("Login")
         btn_login.clicked.connect(self.handle_login)
         btn_register = QPushButton("Register")
@@ -86,10 +92,21 @@ class LoginPage(QWidget):
     def handle_login(self):
         username = self.username.text()
         password = self.password.text()
-        # Call the register_service.login method (placeholder logic)
-        # result = register_service.login(username, password)
-        # TODO: Add error handling based on result
-        self._switch_to_main()
+        self.error_label.setText("")
+        try:
+            result = auth_service.login(username, password)
+            if 'access_token' in result:
+                # Save the access token in the MainWindow
+                parent = self.parent()
+                while parent is not None and not hasattr(parent, 'access_token'):
+                    parent = parent.parent()
+                if parent is not None:
+                    parent.access_token = result['access_token']
+                self._switch_to_main()
+            else:
+                self.error_label.setText("Login failed: Incorrect username or password.")
+        except Exception as e:
+            self.error_label.setText(f"Login error: {str(e)}")
 
 # --- Register Page ---
 class RegisterPage(QWidget):
@@ -115,6 +132,10 @@ class RegisterPage(QWidget):
         field_box.addWidget(self.confirm_password)
         field_box.setSpacing(18)
         layout.addLayout(field_box)
+        self.error_label = QLabel("")
+        self.error_label.setStyleSheet("color: red;")
+        self.error_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.error_label)
         btn_register = QPushButton("Register")
         btn_register.clicked.connect(self.handle_register)
         btn_back = QPushButton("Back to Login")
@@ -132,12 +153,18 @@ class RegisterPage(QWidget):
         username = self.username.text()
         password = self.password.text()
         confirm_password = self.confirm_password.text()
-        # Call the register_service.register_user method (placeholder logic)
-        result = register_service.register()
-        with open(config_path, 'w') as f:
-            f.write(result['conf'])
-        # TODO: Add error handling based on result
-        self._switch_to_login()
+        self.error_label.setText("")
+        if password != confirm_password:
+            self.error_label.setText("Passwords do not match.")
+            return
+        try:
+            result = auth_service.register(username, password)
+            if result.get('status') == 'success':
+                self._switch_to_login()
+            else:
+                self.error_label.setText("Registration failed.")
+        except Exception as e:
+            self.error_label.setText(f"Registration error: {str(e)}")
 
 # --- Main Resource Page ---
 class ResourcePage(QWidget):
@@ -196,6 +223,9 @@ class MainWindow(QStackedWidget):
         self.login_page = LoginPage(self.show_register, self.show_main)
         self.register_page = RegisterPage(self.show_login)
         self.resource_page = ResourcePage()
+
+        # Store access token for the session
+        self.access_token = None
 
         # Wrap pages in a vertical layout with the main title
         self.page_container = QWidget()

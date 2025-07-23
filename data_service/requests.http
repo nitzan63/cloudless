@@ -1,11 +1,11 @@
-### Register a producer
+### Register a provider
 POST http://localhost:8002/users/register
 Content-Type: application/json
 
 {
-  "username": "producer1",
+  "username": "provider1",
   "password": "testpassword",
-  "type": "producer"
+  "type": "provider"
 }
 
 ### Register a submitter
@@ -18,8 +18,8 @@ Content-Type: application/json
   "type": "submitter"
 }
 
-### Fetch producer user
-GET http://localhost:8002/users/producer1
+### Fetch provider user
+GET http://localhost:8002/users/provider1
 
 ### Fetch submitter user
 GET http://localhost:8002/users/submitter1

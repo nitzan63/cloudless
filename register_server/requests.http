@@ -1,15 +1,9 @@
 ### Test: Register a new provider (simulate GET /register)
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwcm9kdWNlcjEiLCJleHAiOjE3NTMyOTc2ODd9.QPe1__RfOLDBCcCRa9F1nXVpFbFaWOwp36kjLi-1uuA
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwcm9kdWNlcjEiLCJleHAiOjE3NTMyOTkyMzN9.G39RHC8clT-2ejoyDvqZ9k_lzT9JuHUHl6VGqQCnyWM
 
 GET http://localhost:8001/register
 Accept: application/json
 Authorization: Bearer {{token}}
-
-###
-
-### Test: Get provider details (simulate GET /details)
-GET http://localhost:8001/details
-Accept: application/json
 
 ###
 

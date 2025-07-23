@@ -1,11 +1,11 @@
-### Register a producer
+### Register a provider
 POST http://localhost:8003/register
 Content-Type: application/json
 
 {
-  "username": "producer1",
+  "username": "provider1",
   "password": "testpassword",
-  "type": "producer"
+  "type": "provider"
 }
 
 ### Register a submitter
@@ -18,11 +18,11 @@ Content-Type: application/json
   "type": "submitter"
 }
 
-### Login as producer
+### Login as provider
 POST http://localhost:8003/login
 Content-Type: application/x-www-form-urlencoded
 
-username=producer1&password=testpassword
+username=provider1&password=testpassword
 
 ### Login as submitter
 POST http://localhost:8003/login

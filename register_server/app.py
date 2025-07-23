@@ -35,8 +35,7 @@ def authenticate_request():
         data = auth_service.validate_token(token)
         if not data:
             return jsonify({'error': 'Invalid or expired token'}), 401
-        g.username = data.get('username')
-        g.user_type = data.get('type')
+        g.user_id = data['user_id']
     except Exception as e:
         return jsonify({'error': f'Auth service error: {str(e)}'}), 401
 
@@ -44,15 +43,12 @@ def authenticate_request():
 @app.route("/register", methods=["GET"])
 def register():
     try:
-        username = g.username
-        print(username)
-        return {}, 200
+        user_id = g.user_id
 
-        # check if user exists
         try:
-            user = provider_service.get_provider(username)
+            user = provider_service.get_provider(user_id)
             if user:
-                return jsonify({"status": "success", "user": user}), 200
+                return jsonify({"status": "registered"}), 200
         except Exception:
             pass
         
@@ -69,32 +65,8 @@ def register():
         return jsonify({"error": str(e)}), 500
 
     return jsonify({
-        "server_public_key": server_config.SERVER_PUBLIC_KEY,
-        "server_endpoint": server_config.SERVER_ENDPOINT,
-        "allowed_ips": server_config.ALLOWED_IPS,
         "client_ip": created_provider['ip'],
         "conf": conf
-    })
-
-
-@app.route("/details", methods=["GET"])
-def details():
-    try:
-        # # Get token from Authorization header
-        # auth_header = request.headers.get('Authorization')
-        # if not auth_header or not auth_header.startswith('Bearer '):
-        #     return jsonify({"error": "Missing or invalid authorization token"}), 401
-        # user_id = auth_header.split(' ')[1]
-
-        created_provider = provider_service.get_provider("admin")
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-    return jsonify({
-        "server_public_key": server_config.SERVER_PUBLIC_KEY,
-        "server_endpoint": server_config.SERVER_ENDPOINT,
-        "allowed_ips": server_config.ALLOWED_IPS,
-        "client_ip": created_provider['network_ip']
     })
 
 

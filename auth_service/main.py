@@ -77,7 +77,7 @@ async def get_current_user(required_type: str = None, credentials: HTTPAuthoriza
         user = resp.json()
     if required_type and user.get("type") != required_type:
         raise HTTPException(status_code=403, detail=f"User must be of type '{required_type}'")
-    return user
+    return user["id"]
 
 def user_type_dependency(required_type):
     async def dependency(credentials: HTTPAuthorizationCredentials = Depends(security)):
@@ -98,11 +98,11 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.get("/protected-producer")
-async def protected_producer_route(user=Depends(user_type_dependency("producer"))):
-    return {"username": user['username']}
+@app.get("/protected-provider")
+async def protected_provider_route(user_id=Depends(user_type_dependency("provider"))):
+    return {"user_id": user_id}
 
 
 @app.get("/protected-submitter")
-async def protected_submitter_route(user=Depends(user_type_dependency("submitter"))):
-    return {"username": user['username']}
+async def protected_submitter_route(user_id=Depends(user_type_dependency("submitter"))):
+    return {"user_id": user_id}
