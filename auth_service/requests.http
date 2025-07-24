@@ -1,0 +1,31 @@
+### Register a provider
+POST http://localhost:8003/register
+Content-Type: application/json
+
+{
+  "username": "provider1",
+  "password": "testpassword",
+  "type": "provider"
+}
+
+### Register a submitter
+POST http://localhost:8003/register
+Content-Type: application/json
+
+{
+  "username": "submitter1",
+  "password": "testpassword",
+  "type": "submitter"
+}
+
+### Login as provider
+POST http://localhost:8003/login
+Content-Type: application/x-www-form-urlencoded
+
+username=provider1&password=testpassword
+
+### Login as submitter
+POST http://localhost:8003/login
+Content-Type: application/x-www-form-urlencoded
+
+username=submitter1&password=testpassword

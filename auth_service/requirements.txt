@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+httpx
+python-jose
+bcrypt
+python-multipart==0.0.9

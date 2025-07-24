@@ -29,9 +29,27 @@ services:
       - POSTGRES_DB=mydatabase
       - POSTGRES_PORT=5432
       - POSTGRES_HOST=db
+    ports:
+      - "8002:8002"
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - cloudless-net
+
+  auth-service:
+    image: auth-service:latest
+    container_name: auth-service
+    build:
+      context: ./auth_service
+      dockerfile: Dockerfile
+    environment:
+      - PORT=8003
+      - DATA_SERVICE_URL=http://data-service:8002
+    ports:
+      - "8003:8003"
+    depends_on:
+      - data-service
     networks:
       - cloudless-net
 
@@ -127,7 +145,7 @@ services:
   livy:
     image: livy:latest
     build:
-      context: ./spark/livy
+      context: ./provider/spark/livy
       dockerfile: livy.Dockerfile
     container_name: livy
     environment:

@@ -3,69 +3,82 @@ import subprocess
 import server_config
 import os
 import logging
+import requests
+from flask import g
+from services.auth_service import AuthService
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 from services.provider_service import ProviderService
+from services.wireguard_service import WireguardService
+
 
 provider_service = ProviderService(os.environ.get('DATA_SERVICE_URL', "http://localhost:8002"))
+wireguard_service = WireguardService()
 
-def add_peer(public_key, client_ip):
-    subprocess.run([
-        "wg", "set", server_config.WG_INTERFACE,
-        "peer", public_key,
-        "allowed-ips", f"{client_ip}/32"
-    ], check=True)
-    peer_block = f"\n[Peer]\nPublicKey = {public_key}\nAllowedIPs = {client_ip}/32\n"
-    with open(server_config.WG_CONF_PATH, "a") as conf:
-        conf.write(peer_block)
+auth_service = AuthService(os.environ.get('AUTH_SERVICE_URL', 'http://localhost:8003'))
 
-@app.route("/register/<public_key>", methods=["GET"])
-def register(public_key):
-    if not public_key:
-        return jsonify({"error": "Missing public_key"}), 400
-
+@app.before_request
+def authenticate_request():
+    # Only skip for endpoints that don't require auth (e.g., health checks)
+    if request.endpoint in ('static',):
+        return
+    if request.path in ('/health',):
+        return
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'error': 'Missing or invalid authorization token'}), 401
+    token = auth_header.split(' ')[1]
     try:
-        # # Get token from Authorization header
-        # auth_header = request.headers.get('Authorization')
-        # if not auth_header or not auth_header.startswith('Bearer '):
-        #     return jsonify({"error": "Missing or invalid authorization token"}), 401
-        # user_id = auth_header.split(' ')[1]
+        data = auth_service.validate_token(token)
+        if not data:
+            return jsonify({'error': 'Invalid or expired token'}), 401
+        g.user_id = data['user_id']
+    except Exception as e:
+        return jsonify({'error': f'Auth service error: {str(e)}'}), 401
 
-        created_provider = provider_service.create_provider("admin", public_key)
-        add_peer(public_key, created_provider['ip'])
+
+@app.route("/register", methods=["GET"])
+def register():
+    try:
+        user_id = g.user_id
+
+        try:
+            user = provider_service.get_provider(user_id)
+            if user:
+                return jsonify({"status": "registered"}), 200
+        except Exception:
+            pass
+        
+        private_key, public_key = wireguard_service.generate_keypair()
+
+        created_provider = provider_service.create_provider(user_id, public_key)
+
+        conf = wireguard_service.generate_client_wg_conf(
+            private_key, 
+            created_provider['ip']
+        )
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
     return jsonify({
-        "server_public_key": server_config.SERVER_PUBLIC_KEY,
-        "server_endpoint": server_config.SERVER_ENDPOINT,
-        "allowed_ips": server_config.ALLOWED_IPS,
-        "client_ip": created_provider['ip']
+        "client_ip": created_provider['ip'],
+        "conf": conf
     })
 
 
-@app.route("/details", methods=["GET"])
-def details():
+@app.route("/trigger", methods=["GET"])
+def trigger():
     try:
-        # # Get token from Authorization header
-        # auth_header = request.headers.get('Authorization')
-        # if not auth_header or not auth_header.startswith('Bearer '):
-        #     return jsonify({"error": "Missing or invalid authorization token"}), 401
-        # user_id = auth_header.split(' ')[1]
-
-        created_provider = provider_service.get_provider("admin")
+        wireguard_service.fetch_providers_and_generate_conf(conf_path="test_generated_config_files/wg0.conf")
+        # wireguard_service.apply_wg_changes()
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-    return jsonify({
-        "server_public_key": server_config.SERVER_PUBLIC_KEY,
-        "server_endpoint": server_config.SERVER_ENDPOINT,
-        "allowed_ips": server_config.ALLOWED_IPS,
-        "client_ip": created_provider['network_ip']
-    })
+    return jsonify({"status": "success"})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8001))
