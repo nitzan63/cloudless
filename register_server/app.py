@@ -57,9 +57,12 @@ def register():
         created_provider = provider_service.create_provider(user_id, public_key)
 
         conf = wireguard_service.generate_client_wg_conf(
-            private_key, 
+            private_key,
             created_provider['ip']
         )
+
+        print(created_provider)
+        # wireguard_service.add_provider(created_provider)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -73,8 +76,8 @@ def register():
 @app.route("/trigger", methods=["GET"])
 def trigger():
     try:
-        wireguard_service.fetch_providers_and_generate_conf(conf_path="test_generated_config_files/wg0.conf")
-        # wireguard_service.apply_wg_changes()
+        wireguard_service.fetch_providers_and_generate_conf()
+        wireguard_service.start_wg_server()
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
