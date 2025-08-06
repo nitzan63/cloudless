@@ -12,7 +12,7 @@ class WireguardService(BaseService):
     def __init__(self):
         super().__init__()
         self.config_path = os.environ.get('CONFIG_PATH', "/etc/wireguard/wg0.conf")
-        self.server_network_ip = os.environ.get('SERVER_NETWORK_IP', "10.10.0.1")
+        self.server_network_ip = os.environ.get('SERVER_NETWORK_IP', "10.10.0.0")
         self.server_port = os.environ.get('SERVER_PORT', 51820)
         self.provider_service = ProviderService(os.environ.get('DATA_SERVICE_URL', "http://localhost:8002"))
         # server public ip
@@ -39,9 +39,7 @@ class WireguardService(BaseService):
             peer = f"""
 [Peer]
 PublicKey = {p['public_key']}
-AllowedIPs = 0.0.0.0/0
-Endpoint = {p.get('network_ip', '')}/32
-PersistentKeepalive = 25
+AllowedIPs = {p['network_ip']}/32
 """
             conf.append(peer.strip())
         
@@ -69,12 +67,13 @@ PersistentKeepalive = 25
         conf = f"""[Interface]
 PrivateKey = {client_private_key}
 Address = {client_ip}/32
+ListenPort = {self.server_port}
 DNS = 1.1.1.1
 
 [Peer]
 PublicKey = {self.server_public_key}
-Endpoint = {self.server_endpoint}
-AllowedIPs = 10.10.0.0/24
+Endpoint = {self.server_endpoint}:{self.server_port}
+AllowedIPs = {self.server_network_ip}/24
 PersistentKeepalive = 25
 """
         return conf
@@ -88,15 +87,15 @@ PersistentKeepalive = 25
         self.generate_wg_conf(providers)
 
 
-    def add_provider(self, provider: Dict):
+    def add_provider(self, public_key: str, network_ip: str):
         """
         Adds a single provider (peer) to wg0.conf
         """
         # TODO: Understand how to add specific endpoints without downtime
         cmd = [
             "sudo", "wg", "set", "wg0",
-            "peer", provider['public_key'],
-            "allowed-ips", "0.0.0.0/0",
+            "peer", public_key,
+            "allowed-ips", f"{network_ip}/32",
             "endpoint", self.server_endpoint,
             "persistent-keepalive", "25"
         ]
@@ -163,7 +162,16 @@ PersistentKeepalive = 25
         public = subprocess.run(['sudo', 'wg', 'show', 'wg0', 'public-key'], 
                             capture_output=True, text=True)
         
-        return private.stdout.strip(), public.stdout.strip()
+        if private.returncode != 0:
+            private = os.environ.get('PRIVATE_KEY', "")
+        else:
+            private = private.stdout.strip()
+        if public.returncode != 0:
+            public = os.environ.get('PUBLIC_KEY', "")
+        else:
+            public = public.stdout.strip()
+        
+        return private, public
 
 
     def get_device_public_ip(self):

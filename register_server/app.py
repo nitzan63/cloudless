@@ -61,8 +61,7 @@ def register():
             created_provider['ip']
         )
 
-        print(created_provider)
-        # wireguard_service.add_provider(created_provider)
+        # wireguard_service.add_provider(public_key, created_provider['ip'])
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
