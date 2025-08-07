@@ -121,11 +121,20 @@ services:
       - livy
     networks:
       - cloudless-net
+
   spark-master:
     image: bitnami/spark:latest
     container_name: spark-master
     environment:
       - SPARK_MODE=master
+      - PYSPARK_PYTHON=python
+      # - SPARK_MASTER_URL=spark://146.148.40.168:7077
+    ports:
+      - "7077:7077"
+      - "7078:7078"
+      - "7079:7079"
+      - "8080:8080"
+      - "6066:6066"
     networks:
       - cloudless-net
 
@@ -158,6 +167,35 @@ services:
       - cloudless-net
     volumes:
       - shared-data:/app/scripts
+
+  wireguard:
+    build: ./wireguard
+    container_name: wireguard
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    sysctls:
+      - net.ipv4.ip_forward=1
+    ports:
+      - "${WG_PORT:-51820}:${WG_PORT:-51820}/udp"
+    volumes:
+      - ./config:/etc/wireguard:rw
+      - ./peers:/etc/wireguard/peers:ro
+    environment:
+      WG_INTERFACE: ${WG_INTERFACE:-wg0}
+      WG_PORT: ${WG_PORT:-51820}
+      WG_SERVER_IP: ${WG_SERVER_IP:-10.10.0.1/24}
+      WG_SUBNET: ${WG_SUBNET:-10.10.0.0/24}
+      WG_ENABLE_NAT: ${WG_ENABLE_NAT:-true}
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /run
+    networks:
+      - cloudless-net
+
 
 networks:
   cloudless-net:
