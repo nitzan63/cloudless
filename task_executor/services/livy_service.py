@@ -18,16 +18,22 @@ class LivyService(BaseService):
             self._pretty_print(resp)
         return resp
 
-    def submit_batch(self, file_path, name="ExampleBatchJob", verbose=True):
+    def submit_batch(self, file_path, name="ExampleBatchJob", args=None, conf=None, verbose=True):
         """
         Submit a batch job (PySpark script).
         file_path: path inside Livy container, e.g. local:/scripts/your_script.py
+        args: optional list of string arguments passed to the script
+        conf: optional spark configuration dict
         Returns the batch job ID.
         """
         data = {
             "file": file_path,
-            "name": name
+            "name": name,
         }
+        if args:
+            data["args"] = args
+        if conf:
+            data["conf"] = conf
         resp = requests.post(f"{self.base_url}/batches", json=data)
         if verbose:
             print("=== Submit Batch Job ===")

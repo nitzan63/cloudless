@@ -23,13 +23,16 @@ class ApiClient {
     return response.json()
   }
 
-  async uploadFile(file: File, taskName: string): Promise<UploadResult> {
+  async uploadFile(file: File, taskName: string, dataset?: File): Promise<UploadResult> {
     if (!taskName) {
       throw new Error('Task name is required')
     }
 
     const formData = new FormData()
     formData.append('file', file)
+    if (dataset) {
+      formData.append('dataset', dataset)
+    }
     formData.append('created_by', 'admin')  // Default value
     formData.append('requested_workers_amount', '1')  // Default value
     formData.append('status', 'submitted')  // Default value
@@ -61,7 +64,7 @@ class ApiClient {
     name: string
     description: string
     code: string
-    datasetRef: string
+    dataset?: File
     specs: TaskSpecs
   }): Promise<Task> {
     const formData = new FormData()
@@ -69,6 +72,9 @@ class ApiClient {
     // Create a File object from the code string
     const file = new File([taskData.code], `${taskData.name}.py`, { type: 'text/plain' })
     formData.append('file', file)
+    if (taskData.dataset) {
+      formData.append('dataset', taskData.dataset)
+    }
     
     // Add required fields
     formData.append('created_by', 'admin')

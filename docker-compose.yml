@@ -29,11 +29,18 @@ services:
       - POSTGRES_DB=mydatabase
       - POSTGRES_PORT=5432
       - POSTGRES_HOST=db
+      - STORAGE_BACKEND=gcs
+      - GCS_BUCKET_NAME=cloudless-files
+      # For local only: mount credentials file and set GOOGLE_APPLICATION_CREDENTIALS
+      # - GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp-key.json
     depends_on:
       db:
         condition: service_healthy
     networks:
       - cloudless-net
+    # For local only:
+    # volumes:
+    #   - ~/.gcp/cloudless-data-service-key.json:/secrets/gcp-key.json:ro
 
   rabbitmq:
     image: rabbitmq:3-management

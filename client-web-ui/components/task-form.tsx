@@ -32,7 +32,7 @@ export default function TaskForm() {
     storageGB: 20,
   })
   const [fileContent, setFileContent] = useState<string>("")
-  const [datasetUrl, setDatasetUrl] = useState("")
+  const [datasetFile, setDatasetFile] = useState<File | null>(null)
 
   useEffect(() => {
     const readFile = async () => {
@@ -66,6 +66,11 @@ export default function TaskForm() {
     setValidationErrors([])
   }
 
+  const handleDatasetFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null
+    setDatasetFile(file)
+  }
+
   const handleValidateTask = async () => {
     if (!selectedFile) {
       toast({
@@ -94,7 +99,7 @@ export default function TaskForm() {
         name: taskName,
         description: 'Spark task', // We can make this dynamic later
         code: fileContent,
-        datasetRef: '', // We'll handle this later
+        dataset: datasetFile || undefined,
         specs: {
           cpuCores: 1,
           memoryGB: 1,
@@ -124,14 +129,6 @@ export default function TaskForm() {
     // Reset validation status when task name changes
     setValidationStatus('unvalidated')
     setValidationErrors([])
-  }
-
-  const handleDatasetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setDatasetUrl(e.target.value)
-  }
-
-  const handleUploadDataset = async () => {
-    // Implementation of handleUploadDataset
   }
 
   return (
@@ -178,32 +175,14 @@ export default function TaskForm() {
                 )}
               </div>
 
-              <div className="space-y-2 opacity-50">
-                <Label htmlFor="dataset-url" className="flex items-center gap-2">
-                  Dataset URL
-                  <span className="text-xs text-muted-foreground">(Currently Disabled)</span>
-                </Label>
-                <div className="flex gap-2">
-                  <Input 
-                    id="dataset-url" 
-                    type="url" 
-                    placeholder="Enter public CSV URL"
-                    value={datasetUrl}
-                    onChange={handleDatasetChange}
-                    disabled
-                  />
-                  <Button 
-                    type="button" 
-                    onClick={handleUploadDataset}
-                    disabled
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Save URL
-                  </Button>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Dataset URL functionality is currently disabled
-                </p>
+              <div className="space-y-2">
+                <Label htmlFor="dataset-file">Dataset (optional)</Label>
+                <Input id="dataset-file" type="file" onChange={handleDatasetFileChange} />
+                {datasetFile && (
+                  <p className="text-sm text-muted-foreground">
+                    Selected: {datasetFile.name}
+                  </p>
+                )}
               </div>
             </div>
           </TabsContent>
@@ -352,6 +331,7 @@ export default function TaskForm() {
                   <ol className="list-decimal pl-6 space-y-3 text-muted-foreground">
                     <li>Enter a task name</li>
                     <li>Upload your Spark script</li>
+                    <li>Optionally attach a dataset file</li>
                     <li>Click "Validate Task"</li>
                     <li>Click "Launch Task" to submit</li>
                   </ol>

@@ -1,6 +1,8 @@
-# CLOUDLESS ☁️❌
+# Cloudless
 
-Cloudless is a decentralized distributed computing platform that enables users to both consume and contribute compute power. By connecting personal computers to a central system, anyone can run scalable distributed data processing jobs while others earn credits for sharing their idle resources.
+Distributed compute sharing system (school project).
+
+See `README-GCS.md` for Google Cloud Storage integration steps and configuration.
 
 ---
 

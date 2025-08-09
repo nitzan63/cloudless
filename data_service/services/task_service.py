@@ -19,17 +19,19 @@ class TaskService:
                 main_file_name TEXT NOT NULL,
                 status TEXT NOT NULL,
                 batch_job_id INTEGER,
-                logs TEXT
+                logs TEXT,
+                dataset_path TEXT,
+                results_path TEXT
             );
         """)
 
-    def create_task(self, created_by, requested_workers_amount, file_path, file_name):
+    def create_task(self, created_by, requested_workers_amount, file_path, file_name, dataset_path=None):
         task_id = str(uuid.uuid4())
         creation_time = datetime.utcnow()
         self.db.execute("""
-            INSERT INTO task (id, creation_time, created_by, requested_workers_amount, script_path, main_file_name, status, batch_job_id, logs)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (task_id, creation_time, created_by, requested_workers_amount, file_path, file_name, 'submitted', None, None))
+            INSERT INTO task (id, creation_time, created_by, requested_workers_amount, script_path, main_file_name, status, batch_job_id, logs, dataset_path, results_path)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (task_id, creation_time, created_by, requested_workers_amount, file_path, file_name, 'submitted', None, None, dataset_path, None))
         return task_id
 
     def get_task(self, task_id):
@@ -45,12 +47,17 @@ class TaskService:
         task = self.get_task(task_id)
         if task == None:
             return None
-        print("Starting to fetch file")
-        file_data = storage_service.get_file(task['script_path'])
-        return file_data
+        payload = {
+            'status': 'success',
+            'file_name': task['main_file_name'],
+            'download_url': storage_service.generate_download_url(task['script_path']),
+        }
+        if task.get('dataset_path'):
+            payload['dataset_download_url'] = storage_service.generate_download_url(task['dataset_path'])
+        return payload
 
     def update_task(self, task_id, **kwargs):
-        allowed_fields = {"created_by", "requested_workers_amount", "script_path", "main_file_name", "status", "batch_job_id", "logs"}
+        allowed_fields = {"created_by", "requested_workers_amount", "script_path", "main_file_name", "status", "batch_job_id", "logs", "dataset_path", "results_path"}
         fields = []
         values = []
         for key, value in kwargs.items():

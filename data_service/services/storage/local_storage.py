@@ -8,22 +8,27 @@ class LocalStorageService(StorageService):
         # Use an env var or default to `local-storage`
         self.base_path = os.path.join(os.path.dirname(__file__), 'local-storage')
         self.uploads_path = os.path.join(self.base_path, 'uploads')
+        self.datasets_path = os.path.join(self.base_path, 'datasets')
         os.makedirs(self.uploads_path, exist_ok=True)
+        os.makedirs(self.datasets_path, exist_ok=True)
 
     def upload_file(self, file_content: Any, filename: str) -> dict:
         """Upload any file to local storage"""
         try:
             # Generate unique filename
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            is_script = filename.endswith('.py')
+            subdir = 'uploads' if is_script else 'datasets'
             unique_filename = f'{timestamp}_{filename}'
-            full_path = os.path.join(self.uploads_path, unique_filename)
+            directory = self.uploads_path if is_script else self.datasets_path
+            full_path = os.path.join(directory, unique_filename)
 
             with open(full_path, 'wb') as f:
                 f.write(file_content)
 
             return {
                 'status': 'success',
-                'file_path': full_path,
+                'file_path': os.path.join(subdir, unique_filename),
                 'file_name': unique_filename,
                 'absolute_path': os.path.abspath(full_path),
             }
@@ -36,16 +41,13 @@ class LocalStorageService(StorageService):
     def get_file(self, file_path: str) -> dict:
         """Retrieve a file from local storage"""
         try:
-            print("here 1")
             full_path = os.path.join(self.base_path, file_path)
-            print(file_path)
             with open(full_path, 'rb') as f:
                 return {
                     'status': 'success',
                     'file_content': f.read(),
                     'file_name': os.path.basename(file_path)
                 }
-            print("here 2")
         except FileNotFoundError:
             return {
                 'status': 'error',
@@ -77,3 +79,8 @@ class LocalStorageService(StorageService):
                 'status': 'error',
                 'message': str(e)
             }
+
+    def generate_download_url(self, file_path: str, expires_seconds: int = 600) -> str:
+        # Point to our streaming endpoint; executor will fetch via data-service
+        # We do not implement expiry here; the API acts as the gate.
+        return f"/storage/get-file?file_path={file_path}"

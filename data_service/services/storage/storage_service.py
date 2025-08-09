@@ -14,3 +14,8 @@ class StorageService(ABC):
     def get_file(self, file_path: str) -> dict:
         """Retrieve file content"""
         pass
+
+    @abstractmethod
+    def generate_download_url(self, file_path: str, expires_seconds: int = 600) -> str:
+        """Return a direct URL to download the file (signed if needed)."""
+        pass

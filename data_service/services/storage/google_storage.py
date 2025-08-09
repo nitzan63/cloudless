@@ -1,6 +1,6 @@
 from google.cloud import storage
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from services.storage.storage_service import StorageService
 from typing import Any
 
@@ -18,7 +18,9 @@ class GoogleStorageService(StorageService):
         try:
             # Generate a unique filename with timestamp
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            unique_filename = f'uploads/{timestamp}_{filename}'
+            # Support dataset vs script by simple heuristic
+            prefix = 'datasets' if not filename.endswith('.py') else 'uploads'
+            unique_filename = f'{prefix}/{timestamp}_{filename}'
             
             # Create blob and upload
             blob = self.bucket.blob(unique_filename)
@@ -27,6 +29,7 @@ class GoogleStorageService(StorageService):
             return {
                 'status': 'success',
                 'file_path': unique_filename,
+                'file_name': os.path.basename(unique_filename),
                 'public_url': blob.public_url
             }
         except Exception as e:
@@ -64,4 +67,9 @@ class GoogleStorageService(StorageService):
             return {
                 'status': 'error',
                 'message': str(e)
-            } 
+            }
+
+    def generate_download_url(self, file_path: str, expires_seconds: int = 600) -> str:
+        blob = self.bucket.blob(file_path)
+        url = blob.generate_signed_url(expiration=timedelta(seconds=expires_seconds), method="GET")
+        return url 

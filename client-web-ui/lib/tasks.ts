@@ -14,6 +14,8 @@ export interface Task {
   script_path: string
   main_file_name: string
   status: "pending" | "running" | "completed" | "failed" | "submitted"
+  description?: string
+  results_path?: string | null
 }
 
 // In a real application, this would be stored in a database
@@ -48,7 +50,7 @@ export const createTask = (taskData: {
   specs: TaskSpecs
 }): Task => {
   // Create a new task object
-  const newTask: Task = {
+  const newTask: any = {
     id: uuidv4(),
     name: taskData.name,
     description: taskData.description,
@@ -103,7 +105,7 @@ export const runTask = (taskId: string): Promise<void> => {
 
       // Update the task status
       updatedTasks[updatedTaskIndex].status = success ? "completed" : "failed"
-      updatedTasks[updatedTaskIndex].completedAt = new Date().toISOString()
+      ;(updatedTasks as any)[updatedTaskIndex].completedAt = new Date().toISOString()
 
       // Save the updated tasks
       saveTasks(updatedTasks)

@@ -29,6 +29,9 @@ services:
       - POSTGRES_DB=mydatabase
       - POSTGRES_PORT=5432
       - POSTGRES_HOST=db
+      - STORAGE_BACKEND=gcs
+      - GCS_BUCKET_NAME=cloudless-files
+      - GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp-key.json
     ports:
       - "8002:8002"
     depends_on:
@@ -36,6 +39,8 @@ services:
         condition: service_healthy
     networks:
       - cloudless-net
+    volumes:
+      - ~/.gcp/cloudless-data-service-key.json:/secrets/gcp-key.json:ro
 
   auth-service:
     image: auth-service:latest

@@ -11,7 +11,7 @@ async def upload(file: UploadFile = File(...)):
     result = storage_service.upload_file(content, file.filename)
     return result
 
-@router.get("/storage/get-file")
+@router.get("/get-file")
 def get_file(file_path: str):
     result = storage_service.get_file(file_path)
     if result['status'] != 'success':
