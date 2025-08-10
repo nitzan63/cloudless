@@ -169,15 +169,20 @@ services:
       - shared-data:/app/scripts
 
   wireguard:
-    build: ./wireguard
+    build:
+      context: ./wireguard
+      dockerfile: Dockerfile
     container_name: wireguard
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
+      - SYS_MODULE
+    privileged: true
     sysctls:
       - net.ipv4.ip_forward=1
     ports:
       - "${WG_PORT:-51820}:${WG_PORT:-51820}/udp"
+      - "5000:5000"
     volumes:
       - ./config:/etc/wireguard:rw
       - ./peers:/etc/wireguard/peers:ro
@@ -189,13 +194,11 @@ services:
       WG_ENABLE_NAT: ${WG_ENABLE_NAT:-true}
     security_opt:
       - no-new-privileges:true
-    read_only: true
     tmpfs:
       - /tmp
       - /run
     networks:
       - cloudless-net
-
 
 networks:
   cloudless-net:

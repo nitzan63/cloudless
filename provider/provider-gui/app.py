@@ -215,7 +215,7 @@ class MainWindow(QStackedWidget):
     def __init__(self):
         super().__init__()
         # Main title at the top (easy to change)
-        self.main_title = QLabel("Cloudless Provider Agent (Change Me)")
+        self.main_title = QLabel("Cloudless Provider Agent")
         self.main_title.setFont(QFont("Segoe UI", 22, QFont.Bold))
         self.main_title.setAlignment(Qt.AlignCenter)
         self.main_title.setStyleSheet("color: #7ecfff; margin: 16px 0 8px 0;")

@@ -8,6 +8,16 @@ Content-Type: application/json
   "type": "provider"
 }
 
+### Register a provider
+POST http://146.148.40.168:8003/register
+Content-Type: application/json
+
+{
+  "username": "provider3",
+  "password": "testpassword",
+  "type": "provider"
+}
+
 ### Register a submitter
 POST http://localhost:8003/register
 Content-Type: application/json
@@ -23,6 +33,12 @@ POST http://localhost:8003/login
 Content-Type: application/x-www-form-urlencoded
 
 username=provider1&password=testpassword
+
+### Login as provider
+POST http://146.148.40.168:8003/login
+Content-Type: application/x-www-form-urlencoded
+
+username=provider3&password=testpassword
 
 ### Login as submitter
 POST http://localhost:8003/login

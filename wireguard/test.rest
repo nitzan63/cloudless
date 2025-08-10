@@ -1,0 +1,83 @@
+### WireGuard Flask API Tests
+
+# Base URL - change this if your server is running on a different host/port
+@baseUrl = http://localhost:5000
+
+### 1. Root endpoint - Get API information
+GET {{baseUrl}}/
+Content-Type: application/json
+
+###
+
+### 2. Health check - Verify WireGuard is running
+GET {{baseUrl}}/health
+Content-Type: application/json
+
+###
+
+### 3. WireGuard status - Get all connected endpoints
+GET {{baseUrl}}/status
+Content-Type: application/json
+
+###
+
+### 4. Public key - Get WireGuard server's public key
+GET {{baseUrl}}/public-key
+Content-Type: application/json
+
+###
+
+### 5. Test with different host (if running on different machine)
+# Uncomment and modify the URL below if testing from a different machine
+# GET http://your-server-ip:5000/health
+# Content-Type: application/json
+
+###
+
+### 6. Test with curl commands (for reference)
+# These are the equivalent curl commands you can run in terminal:
+
+# Health check
+# curl -X GET http://localhost:5000/health
+
+# WireGuard status
+# curl -X GET http://localhost:5000/status
+
+# Public key
+# curl -X GET http://localhost:5000/public-key
+
+# Root endpoint
+# curl -X GET http://localhost:5000/
+
+###
+
+### 7. Expected Responses
+
+# Health Check Response (200 OK):
+# {
+#   "status": "healthy",
+#   "wireguard": "running",
+#   "message": "WireGuard is running"
+# }
+
+# Status Response (200 OK):
+# {
+#   "status": "success",
+#   "wireguard_status": "interface: wg0\n  public key: ...\n  private key: (hidden)\n  listening port: 51820\n\npeer: ...\n  endpoint: ...\n  allowed ips: 10.10.0.2/32\n  latest handshake: ...\n  transfer: ... received, ... sent"
+# }
+
+# Public Key Response (200 OK):
+# {
+#   "status": "success",
+#   "public_key": "base64_encoded_public_key_here"
+# }
+
+# Root Response (200 OK):
+# {
+#   "service": "WireGuard Status Server",
+#   "endpoints": {
+#     "health": "/health",
+#     "status": "/status",
+#     "public_key": "/public-key"
+#   }
+# } 
