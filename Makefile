@@ -12,6 +12,12 @@ local-env:
 stop-local-env:
 	docker-compose -f local-env-docker-compose.yml down -v
 
+vm-local-env:
+	docker compose -f local-env-docker-compose.yml up -d --build
+
+vm-stop-local-env:
+	docker compose -f local-env-docker-compose.yml down -v
+
 server:
 	./server/$(PYTHON) ./server/app.py
 
