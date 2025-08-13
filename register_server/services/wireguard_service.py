@@ -17,6 +17,7 @@ class WireguardService(BaseService):
         self.provider_service = ProviderService(os.environ.get('DATA_SERVICE_URL', "http://localhost:8002"))
         # server public ip
         self.server_endpoint = self.get_device_public_ip()
+        print(self.server_endpoint)
         # fetch keys
         self.server_private_key, self.server_public_key = self.get_wg_keys()
 
@@ -98,4 +99,28 @@ PersistentKeepalive = 25
         return res_json["private_key"], res_json["public_key"]
 
     def get_device_public_ip(self):
-        return "127.0.0.1"
+        try:
+            # Using different services as fallbacks
+            services = [
+                'https://api.ipify.org',
+                'https://icanhazip.com',
+                'https://ifconfig.me',
+                'https://checkip.amazonaws.com',
+                'https://httpbin.org/ip'
+            ]
+            
+            for service in services:
+                try:
+                    if service == 'https://httpbin.org/ip':
+                        response = requests.get(service, timeout=5)
+                        return response.json()['origin'].split(',')[0]
+                    else:
+                        response = requests.get(service, timeout=5)
+                        return response.text.strip()
+                except:
+                    continue
+            
+            raise Exception("Not found in any of the services")
+        except Exception as e:
+            print(f"Error getting public IP: {e}")
+            return None
