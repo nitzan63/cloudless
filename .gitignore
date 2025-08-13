@@ -4,3 +4,5 @@ local-storage
 .env
 files
 my_notes.md
+
+config/
