@@ -27,11 +27,8 @@ PrivateKey = $(cat /etc/wireguard/server_private.key)
 PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -A FORWARD -o %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth+ -j MASQUERADE
 PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth+ -j MASQUERADE
 
-[Peer]
-PublicKey = 3tDI2t6P+36nKTLNtbOm4kEM3WqwPvPk9ySQE/2VlQc=
-AllowedIPs = 10.10.0.2/32
-
 EOF
+
 
 # Start WireGuard
 wg-quick up $WG_INTERFACE

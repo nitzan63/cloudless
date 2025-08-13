@@ -1,5 +1,5 @@
 ### Test: Register a new provider (simulate GET /register)
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwcm92aWRlcjMiLCJleHAiOjE3NTQzMzE3NjF9.QycK9Zndw5T0RNbmfLQhpDZfx7mIu0SZlDCwo4bgIXk
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwcm92aWRlcjEiLCJleHAiOjE3NTUxMDM3MTh9.U5ySUeTmgNTr7Zeo_reHcK8fBOULdt6rd2HJ_VjFQTc
 
 GET http://localhost:8001/register
 Accept: application/json

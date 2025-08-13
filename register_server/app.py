@@ -16,7 +16,7 @@ from services.wireguard_service import WireguardService
 
 
 provider_service = ProviderService(os.environ.get('DATA_SERVICE_URL', "http://localhost:8002"))
-wireguard_service = WireguardService()
+wireguard_service = WireguardService(os.environ.get('WIREGUARD_SERVICE_URL', "http://localhost:5000"))
 
 auth_service = AuthService(os.environ.get('AUTH_SERVICE_URL', 'http://localhost:8003'))
 
@@ -61,7 +61,7 @@ def register():
             created_provider['ip']
         )
 
-        # wireguard_service.add_provider(public_key, created_provider['ip'])
+        wireguard_service.add_provider(public_key, created_provider['ip'])
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
