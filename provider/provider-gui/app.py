@@ -211,13 +211,13 @@ class ResourcePage(QWidget):
 
     def start_logic(self):
         data = register_service.register()
-        if 'conf' in data:
+        if 'status' in data and data['status'] == "NEW_USER_REGISTERED":
             files_service.save_config("wg0.conf", data['conf'])
         container_id = docker_runner_service.run(
             image="spark-worker-vpn",
             container_name="spark-worker-1",
             port_map="8881:8881",
-            env_vars={"SPARK_MASTER_IP": "34.173.111.175"},
+            env_vars={"SPARK_MASTER_IP": data['server_ip']},
             volume_map={
                 files_service.get_config_path(): "/etc/wireguard"
             },

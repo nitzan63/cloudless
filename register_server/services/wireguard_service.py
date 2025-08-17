@@ -17,7 +17,6 @@ class WireguardService(BaseService):
         self.provider_service = ProviderService(os.environ.get('DATA_SERVICE_URL', "http://localhost:8002"))
         # server public ip
         self.server_endpoint = self.get_device_public_ip()
-        print(self.server_endpoint)
         # fetch keys
         self.server_private_key, self.server_public_key = self.get_wg_keys()
 
@@ -99,6 +98,9 @@ PersistentKeepalive = 25
         return res_json["private_key"], res_json["public_key"]
 
     def get_device_public_ip(self):
+        is_local_env = (os.environ.get('LOCAL_ENV', "false") == "true")
+        if is_local_env:
+            return "127.0.0.1"
         try:
             # Using different services as fallbacks
             services = [
@@ -124,3 +126,6 @@ PersistentKeepalive = 25
         except Exception as e:
             print(f"Error getting public IP: {e}")
             return None
+
+    def get_server_ip(self):
+        return self.server_endpoint
