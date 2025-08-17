@@ -58,3 +58,6 @@ run-spark-job:
 
 remove-none-docker-images:
 	for /f "tokens=*" %i in ('docker images -f "dangling=true" -q') do docker rmi %i
+
+package-provider-gui:
+	cd ./provider/provider-gui && venv\Scripts\activate && pyinstaller --noconfirm --windowed app.py

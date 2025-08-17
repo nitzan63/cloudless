@@ -1,3 +1,7 @@
 PyQt5>=5.15.0
 python-dotenv==1.0.0
 requests
+keyring
+appdirs
+docker
+pyinstaller

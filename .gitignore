@@ -6,3 +6,7 @@ files
 my_notes.md
 
 config/
+build/
+dist/
+
+app.spec
