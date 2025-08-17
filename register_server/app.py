@@ -5,6 +5,7 @@ import os
 import logging
 import requests
 from flask import g
+import time
 from services.auth_service import AuthService
 
 logging.basicConfig(level=logging.INFO)
@@ -13,7 +14,6 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 from services.provider_service import ProviderService
 from services.wireguard_service import WireguardService
-
 
 provider_service = ProviderService(os.environ.get('DATA_SERVICE_URL', "http://localhost:8002"))
 wireguard_service = WireguardService(os.environ.get('WIREGUARD_SERVICE_URL', "http://localhost:5000"))
