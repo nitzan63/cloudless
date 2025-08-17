@@ -145,7 +145,7 @@ services:
       - cloudless-net
 
   spark-master:
-    image: bitnami/spark:latest
+    image: bitnami/spark:4.0.0
     container_name: spark-master
     network_mode: "service:wireguard"
     environment:
@@ -155,18 +155,18 @@ services:
     depends_on:
       - wireguard
 
-  spark-worker:
-    image: bitnami/spark:latest
-    container_name: spark-worker
-    environment:
-      - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://wireguard:7077
-      - SPARK_WORKER_MEMORY=2G
-      - SPARK_WORKER_CORES=2
-    depends_on:
-      - spark-master
-    networks:
-      - cloudless-net
+  # spark-worker:
+  #   image: bitnami/spark:latest
+  #   container_name: spark-worker
+  #   environment:
+  #     - SPARK_MODE=worker
+  #     - SPARK_MASTER_URL=spark://wireguard:7077
+  #     - SPARK_WORKER_MEMORY=2G
+  #     - SPARK_WORKER_CORES=2
+  #   depends_on:
+  #     - spark-master
+  #   networks:
+  #     - cloudless-net
 
   livy:
     image: livy:latest
