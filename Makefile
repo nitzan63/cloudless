@@ -44,7 +44,7 @@ migrations:
 	./server/$(PYTHON) ./server/db/postgres/migrations.py
 
 build-spark-worker:
-	cd spark && \
+	cd provider/spark && \
 	docker build -f sparkWorker.Dockerfile -t spark-worker-vpn .
 
 run-spark-worker:

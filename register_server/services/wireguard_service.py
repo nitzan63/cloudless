@@ -13,7 +13,7 @@ class WireguardService(BaseService):
         super().__init__(wireguard_server_url)
         self.config_path = os.environ.get('CONFIG_PATH', "/etc/wireguard/wg0.conf")
         self.server_network_ip = os.environ.get('SERVER_NETWORK_IP', "10.10.0.0")
-        self.server_port = os.environ.get('SERVER_PORT', 51820)
+        self.server_port = os.environ.get('VPN_SERVER_PORT', 51820)
         self.provider_service = ProviderService(os.environ.get('DATA_SERVICE_URL', "http://localhost:8002"))
         # server public ip
         self.server_endpoint = self.get_device_public_ip()

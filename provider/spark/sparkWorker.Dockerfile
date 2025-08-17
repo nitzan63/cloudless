@@ -10,7 +10,7 @@ RUN rm -rf /var/lib/apt/lists/*
 
 COPY ./wg0.conf /etc/wireguard/wg0.conf
 
-COPY ./run_spark_worker.sh /run.sh
-RUN chmod +x /run.sh
+COPY ./run_spark_worker.sh /opt/bitnami/spark/run.sh
+RUN chmod +x /opt/bitnami/spark/run.sh
 
-CMD ["sh", "-c", "wg-quick up wg0 && /run.sh"]
+CMD ["/bin/bash", "-c", "wg-quick up wg0 && /opt/bitnami/spark/run.sh"]
