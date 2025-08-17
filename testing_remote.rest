@@ -1,13 +1,13 @@
 @BASE_SERVER=34.173.111.175
 
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwcm92aWRlcjMiLCJleHAiOjE3NTQ5MzIzMjR9.ntP0AIpUceXXr74MQI2XlCULzGN4WxMTPZQ2bvKrNBs
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwcm92aWRlcjEiLCJleHAiOjE3NTU0MzI0OTJ9.Bl6c4c3P4Zcfj3dWZ_Gwbe04mLvihtisqjxRgPr0C8s
 
 
 POST http://{{BASE_SERVER}}:8003/register
 Content-Type: application/json
 
 {
-  "username": "provider3",
+  "username": "provider1",
   "password": "testpassword",
   "type": "provider"
 }
@@ -17,7 +17,7 @@ Content-Type: application/json
 POST http://{{BASE_SERVER}}:8003/login
 Content-Type: application/x-www-form-urlencoded
 
-username=provider3&password=testpassword
+username=provider1&password=testpassword
 
 
 ###
