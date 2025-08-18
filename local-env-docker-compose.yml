@@ -151,7 +151,7 @@ services:
     environment:
       - SPARK_MODE=master
       - PYSPARK_PYTHON=python
-      - SPARK_MASTER_URL=spark://10.10.0.1:7077
+      - SPARK_MASTER_URL=spark://34.173.111.175:7077
     depends_on:
       - wireguard
 
