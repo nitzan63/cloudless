@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Play, Trash2, Eye, Clock, CheckCircle, XCircle, Loader2, AlertCircle, Plus } from "lucide-react"
+import { Play, Trash2, Eye, Clock, CheckCircle, XCircle, Loader2, AlertCircle, Plus, ScrollText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -25,7 +25,7 @@ interface TaskListProps {
 
 export default function TaskList({ initialTasks }: TaskListProps) {
   const router = useRouter()
-  const [tasks, setTasks] = useState<Task[]>(initialTasks)
+  const tasks = initialTasks
   const [runningTaskIds, setRunningTaskIds] = useState<Set<string>>(new Set())
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
 
@@ -83,15 +83,15 @@ export default function TaskList({ initialTasks }: TaskListProps) {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString()
+    return new Date(dateString).toISOString()
   }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "pending":
+      case "submitted":
         return (
           <Badge variant="outline" className="flex items-center gap-1">
-            <Clock className="h-3 w-3" /> Pending
+            <Clock className="h-3 w-3" /> Submitted
           </Badge>
         )
       case "running":
@@ -144,13 +144,13 @@ export default function TaskList({ initialTasks }: TaskListProps) {
             <Card key={task.id} className="overflow-hidden">
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
-                  <CardTitle className="truncate" title={task.name}>
-                    {task.name}
+                  <CardTitle className="truncate" title={task.main_file_name}>
+                    {task.main_file_name}
                   </CardTitle>
                   {getStatusBadge(task.status)}
                 </div>
                 <CardDescription className="line-clamp-2">
-                  {task.description || "No description provided"}
+                  ID: {task.id}
                 </CardDescription>
               </CardHeader>
 
@@ -172,73 +172,67 @@ export default function TaskList({ initialTasks }: TaskListProps) {
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">File:</span>
-                    <span className="truncate max-w-[200px]" title={task.main_file_name}>
-                      {task.main_file_name}
+                    <span className="text-muted-foreground">Script Path:</span>
+                    <span className="truncate max-w-[200px]" title={task.script_path}>
+                      {task.script_path}
                     </span>
                   </div>
+
+                  {task.batch_job_id && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Batch Job ID:</span>
+                      <span>{task.batch_job_id}</span>
+                    </div>
+                  )}
+
+                  {task.logs && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Logs:</span>
+                      <span className="text-green-600">Available</span>
+                    </div>
+                  )}
+                  {!task.logs && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Logs:</span>
+                      <span className="text-muted-foreground">Missing</span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
 
               <CardFooter className="flex justify-between pt-3">
-                {/* Temporarily disabled buttons
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={() => setSelectedTask(task)}>
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setSelectedTask(task)}
+                      disabled={!task.logs}
+                    >
+                      <ScrollText className="h-4 w-4 mr-1" />
+                      View Logs
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>{selectedTask?.main_file_name}</DialogTitle>
-                      <DialogDescription>Created by {selectedTask?.created_by}</DialogDescription>
+                      <DialogTitle>Logs for {task.main_file_name}</DialogTitle>
+                      <DialogDescription>
+                        Task ID: {task.id}
+                      </DialogDescription>
                     </DialogHeader>
-                    <div className="mt-4 space-y-4">
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Task Details</h4>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div className="text-muted-foreground">Status:</div>
-                          <div>{selectedTask && getStatusBadge(selectedTask.status)}</div>
-                          <div className="text-muted-foreground">Created:</div>
-                          <div>{selectedTask && formatDate(selectedTask.creation_time)}</div>
-                          <div className="text-muted-foreground">Workers:</div>
-                          <div>{selectedTask?.requested_workers_amount}</div>
-                          <div className="text-muted-foreground">Script Path:</div>
-                          <div className="truncate" title={selectedTask?.script_path}>
-                            {selectedTask?.script_path}
-                          </div>
+                    <div className="mt-4">
+                      {task.logs ? (
+                        <pre className="bg-muted p-4 rounded-lg overflow-x-auto whitespace-pre-wrap text-sm font-mono">
+                          {task.logs}
+                        </pre>
+                      ) : (
+                        <div className="text-center text-muted-foreground py-8">
+                          No logs available for this task
                         </div>
-                      </div>
+                      )}
                     </div>
                   </DialogContent>
                 </Dialog>
-
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleRunTask(task.id)}
-                    disabled={runningTaskIds.has(task.id) || task.status === "running"}
-                  >
-                    {runningTaskIds.has(task.id) ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                    ) : (
-                      <Play className="h-4 w-4 mr-1" />
-                    )}
-                    Run
-                  </Button>
-
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteTask(task.id)}
-                    disabled={runningTaskIds.has(task.id) || task.status === "running"}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-                */}
               </CardFooter>
             </Card>
           ))}

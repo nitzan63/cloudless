@@ -13,7 +13,9 @@ export interface Task {
   requested_workers_amount: number
   script_path: string
   main_file_name: string
-  status: "pending" | "running" | "completed" | "failed" | "submitted"
+  status: "submitted" | "running" | "completed" | "failed"
+  batch_job_id: number | null
+  logs: string | null
 }
 
 // In a real application, this would be stored in a database
@@ -55,8 +57,10 @@ export const createTask = (taskData: {
     code: taskData.code,
     datasetRef: taskData.datasetRef,
     specs: taskData.specs,
-    status: "pending",
+    status: "submitted",
     createdAt: new Date().toISOString(),
+    batch_job_id: null,
+    logs: null,
   }
 
   // Get existing tasks and add the new one
