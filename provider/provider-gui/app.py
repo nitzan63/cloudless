@@ -10,14 +10,15 @@ from services.auth_service import AuthService
 from services.secrets_service import SecretsService
 from services.files_service import FilesService
 from services.docker_runner_service import DockerRunnerService
+from dotenv import load_dotenv
+
+load_dotenv()
 
 auth_service = AuthService(os.environ.get('AUTH_SERVICE_URL', "http://localhost:8003"))
 secrets_service = SecretsService()
 register_service = RegisterService(os.environ.get('REGISTER_SERVICE_URL', "http://localhost:8001"), secrets_service)
 files_service = FilesService("CloudlessLocalProvider", "Cloudless")
 docker_runner_service = DockerRunnerService()
-
-config_path = os.environ.get('CONFIG_PATH', "")
 
 # --- Dark Mode Palette ---
 def set_dark_mode(app):
