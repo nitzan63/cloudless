@@ -176,7 +176,7 @@ services:
     container_name: livy
     environment:
       - SPARK_HOME=/opt/bitnami/spark
-      - LIVY_SPARK_MASTER=spark://spark-master:7077
+      - LIVY_SPARK_MASTER=spark://wireguard:7077
     depends_on:
       - spark-master
     networks:
