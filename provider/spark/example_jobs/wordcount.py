@@ -1,4 +1,5 @@
 from pyspark.sql import SparkSession
+import time
 
 # Initialize Spark Session
 spark = SparkSession.builder.appName("WordCount").getOrCreate()

@@ -1,5 +1,5 @@
 ### Test: Register a new provider (simulate GET /register)
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwcm9kdWNlcjEiLCJleHAiOjE3NTMyOTkyMzN9.G39RHC8clT-2ejoyDvqZ9k_lzT9JuHUHl6VGqQCnyWM
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwcm92aWRlcjEiLCJleHAiOjE3NTU0MzA1Mzl9.mfVODhliWe6i7kX2bwzpFz5Jg5bGNPcIG_RxEKlvM9s
 
 GET http://localhost:8001/register
 Accept: application/json
@@ -7,9 +7,22 @@ Authorization: Bearer {{token}}
 
 ###
 
+GET http://146.148.40.168:8001/register
+Accept: application/json
+Authorization: Bearer {{token}}
+
+
+###
+
 ### Test: Trigger endpoint (simulate GET /trigger)
 GET http://localhost:8001/trigger
 Accept: application/json
+
+
+### Test: Trigger endpoint (simulate GET /trigger)
+GET http://146.148.40.168:8001/trigger
+Accept: application/json
+Authorization: Bearer {{token}}
 
 ### Test: Data Service - Get all providers
 GET http://localhost:8002/providers/

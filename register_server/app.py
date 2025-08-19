@@ -5,6 +5,7 @@ import os
 import logging
 import requests
 from flask import g
+import time
 from services.auth_service import AuthService
 
 logging.basicConfig(level=logging.INFO)
@@ -14,9 +15,8 @@ app = Flask(__name__)
 from services.provider_service import ProviderService
 from services.wireguard_service import WireguardService
 
-
 provider_service = ProviderService(os.environ.get('DATA_SERVICE_URL', "http://localhost:8002"))
-wireguard_service = WireguardService()
+wireguard_service = WireguardService(os.environ.get('WIREGUARD_SERVICE_URL', "http://localhost:5000"))
 
 auth_service = AuthService(os.environ.get('AUTH_SERVICE_URL', 'http://localhost:8003'))
 
@@ -48,7 +48,10 @@ def register():
         try:
             user = provider_service.get_provider(user_id)
             if user:
-                return jsonify({"status": "registered"}), 200
+                return jsonify({
+                    "server_ip": wireguard_service.get_server_ip(),
+                    "status": "EXISTING_USER_REGISTERED"
+                }), 200
         except Exception:
             pass
         
@@ -61,14 +64,16 @@ def register():
             created_provider['ip']
         )
 
-        # wireguard_service.add_provider(public_key, created_provider['ip'])
+        wireguard_service.add_provider(public_key, created_provider['ip'])
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
     return jsonify({
         "client_ip": created_provider['ip'],
-        "conf": conf
+        "server_ip": wireguard_service.get_server_ip(),
+        "conf": conf,
+        "status": "NEW_USER_REGISTERED"
     })
 
 

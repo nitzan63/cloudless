@@ -1,0 +1,267 @@
+### WireGuard Flask API Tests
+
+# Base URL - change this if your server is running on a different host/port
+@baseUrl = http://localhost:5000
+
+### 1. Root endpoint - Get API information
+GET {{baseUrl}}/
+Content-Type: application/json
+
+###
+
+### 2. Health check - Verify WireGuard is running
+GET {{baseUrl}}/health
+Content-Type: application/json
+
+###
+
+### 3. WireGuard status - Get all connected endpoints
+GET {{baseUrl}}/status
+Content-Type: application/json
+
+###
+
+### 4. Public key - Get WireGuard server's public key
+GET {{baseUrl}}/public-key
+Content-Type: application/json
+
+###
+
+### 5. Private key - Get WireGuard server's private key
+GET {{baseUrl}}/private-key
+Content-Type: application/json
+
+###
+
+### 6. Both keys - Get both public and private keys
+GET {{baseUrl}}/keys
+Content-Type: application/json
+
+###
+
+### 7. Generate new keypair - Create a new WireGuard keypair
+GET {{baseUrl}}/generate-keys
+Content-Type: application/json
+
+###
+
+### 8. Add new peer - Add a peer to WireGuard configuration and interface
+POST {{baseUrl}}/add-peer
+Content-Type: application/json
+
+{
+    "peer_public_key": "3tDI2t6P+36nKTLNtbOm4kEM3WqwPvPk9ySQE/2VlQc=",
+    "allowed_ips": "10.10.0.2/32"
+}
+
+###
+
+### 9. Add another peer with different IP
+POST {{baseUrl}}/add-peer
+Content-Type: application/json
+
+{
+    "peer_public_key": "ANOTHER_PEER_PUBLIC_KEY_HERE",
+    "allowed_ips": "10.10.0.3/32"
+}
+
+###
+
+### 10. Add peer with multiple allowed IPs
+POST {{baseUrl}}/add-peer
+Content-Type: application/json
+
+{
+    "peer_public_key": "MULTI_IP_PEER_PUBLIC_KEY_HERE",
+    "allowed_ips": "10.10.0.4/32, 10.10.0.5/32"
+}
+
+###
+
+### 11. Reload WireGuard configuration - Apply config changes without restart
+GET {{baseUrl}}/reload
+Content-Type: application/json
+
+###
+
+### 12. Restart WireGuard service - Full restart of the service
+GET {{baseUrl}}/restart
+Content-Type: application/json
+
+###
+
+### 13. Test with different host (if running on different machine)
+# Uncomment and modify the URL below if testing from a different machine
+# GET http://your-server-ip:5000/health
+# Content-Type: application/json
+
+###
+
+### 14. Test with curl commands (for reference)
+# These are the equivalent curl commands you can run in terminal:
+
+# Health check
+# curl -X GET http://localhost:5000/health
+
+# WireGuard status
+# curl -X GET http://localhost:5000/status
+
+# Public key
+# curl -X GET http://localhost:5000/public-key
+
+# Private key
+# curl -X GET http://localhost:5000/private-key
+
+# Both keys
+# curl -X GET http://localhost:5000/keys
+
+# Generate keypair
+# curl -X POST http://localhost:5000/generate-keys
+
+# Add peer
+# curl -X POST http://localhost:5000/add-peer \
+#   -H "Content-Type: application/json" \
+#   -d '{"peer_name": "test-peer", "peer_public_key": "YOUR_KEY", "allowed_ips": "10.10.0.2/32"}'
+
+# Reload config
+# curl -X POST http://localhost:5000/reload
+
+# Restart service
+# curl -X POST http://localhost:5000/restart
+
+# Root endpoint
+# curl -X GET http://localhost:5000/
+
+###
+
+### 15. Expected Responses
+
+# Health Check Response (200 OK):
+# {
+#   "status": "healthy",
+#   "wireguard": "running",
+#   "message": "WireGuard is running"
+# }
+
+# Status Response (200 OK):
+# {
+#   "status": "success",
+#   "wireguard_status": "interface: wg0\n  public key: ...\n  private key: (hidden)\n  listening port: 51820\n\npeer: ...\n  endpoint: ...\n  allowed ips: 10.10.0.2/32\n  latest handshake: ...\n  transfer: ... received, ... sent"
+# }
+
+# Public Key Response (200 OK):
+# {
+#   "status": "success",
+#   "public_key": "base64_encoded_public_key_here"
+# }
+
+# Private Key Response (200 OK):
+# {
+#   "status": "success",
+#   "private_key": "base64_encoded_private_key_here"
+# }
+
+# Both Keys Response (200 OK):
+# {
+#   "status": "success",
+#   "public_key": "base64_encoded_public_key_here",
+#   "private_key": "base64_encoded_private_key_here"
+# }
+
+# Generate Keys Response (200 OK):
+# {
+#   "status": "success",
+#   "message": "Keypair generated successfully",
+#   "private_key": "new_base64_encoded_private_key",
+#   "public_key": "new_base64_encoded_public_key"
+# }
+
+# Add Peer Response (200 OK):
+# {
+#   "status": "success",
+#   "message": "Peer test-peer-1 added successfully",
+#   "peer_name": "test-peer-1",
+#   "peer_public_key": "YOUR_PEER_PUBLIC_KEY_HERE",
+#   "allowed_ips": "10.10.0.2/32"
+# }
+
+# Reload Response (200 OK):
+# {
+#   "status": "success",
+#   "message": "WireGuard configuration reloaded successfully"
+# }
+
+# Restart Response (200 OK):
+# {
+#   "status": "success",
+#   "message": "WireGuard restarted successfully"
+# }
+
+# Root Response (200 OK):
+# {
+#   "service": "WireGuard Status Server",
+#   "endpoints": {
+#     "health": "/health",
+#     "status": "/status",
+#     "public_key": "/public-key",
+#     "private_key": "/private-key",
+#     "keys": "/keys",
+#     "generate_keys": "/generate-keys (POST)",
+#     "add_peer": "/add-peer (POST)",
+#     "restart": "/restart (POST)",
+#     "reload": "/reload (POST)"
+#   }
+# }
+
+### 16. Error Response Examples
+
+# Missing JSON data (400 Bad Request):
+# {
+#   "status": "error",
+#   "message": "No JSON data provided"
+# }
+
+# Missing required field (400 Bad Request):
+# {
+#   "status": "error",
+#   "message": "Missing required field: peer_public_key"
+# }
+
+# Failed operation (500 Internal Server Error):
+# {
+#   "status": "error",
+#   "message": "Failed to add peer completely",
+#   "config_success": true,
+#   "wg_success": false
+# }
+
+### 17. Testing Workflow
+
+# 1. First check if WireGuard is running:
+# GET {{baseUrl}}/health
+
+# 2. Get current server keys:
+# GET {{baseUrl}}/keys
+
+# 3. Generate a new keypair for a peer:
+# POST {{baseUrl}}/generate-keys
+
+# 4. Add the peer using the generated public key:
+# POST {{baseUrl}}/add-peer (with the generated public key)
+
+# 5. Check status to see the new peer:
+# GET {{baseUrl}}/status
+
+# 6. Reload configuration to apply changes:
+# POST {{baseUrl}}/reload
+
+# 7. If needed, restart the service:
+# POST {{baseUrl}}/restart
+
+### 18. Security Notes
+
+# - The private key endpoint should be protected in production
+# - Consider adding authentication for peer management endpoints
+# - Validate peer public keys before adding them
+# - Use HTTPS in production environments
+# - Consider rate limiting for key generation and peer addition 

@@ -27,7 +27,7 @@ class ProviderService:
         """
         result = self.db.execute(query)
         if not result:
-            return "10.10.0.1"
+            return "10.10.0.2"
         
         last_ip = result[0][0]
         last_octet = int(last_ip.split('.')[-1])

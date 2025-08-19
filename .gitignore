@@ -4,3 +4,10 @@ local-storage
 .env
 files
 my_notes.md
+
+config/
+build/
+dist/
+
+app.spec
+docker_containers.json

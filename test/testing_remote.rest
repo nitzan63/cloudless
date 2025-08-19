@@ -1,0 +1,31 @@
+@BASE_SERVER=34.173.111.175
+
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwcm92aWRlcjEiLCJleHAiOjE3NTU0NDMxMjh9.Ffu5AYJlkhkaGms_E6vfaMUQ24Zyzzc6NUIPwwB1lMQ
+
+POST http://{{BASE_SERVER}}:8003/register
+Content-Type: application/json
+
+{
+  "username": "provider1",
+  "password": "testpassword",
+  "type": "provider"
+}
+
+###
+
+POST http://{{BASE_SERVER}}:8003/login
+Content-Type: application/x-www-form-urlencoded
+
+username=provider1&password=testpassword
+
+
+###
+
+GET http://{{BASE_SERVER}}:8001/trigger
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+GET http://{{BASE_SERVER}}:8001/register
+Accept: application/json
+Authorization: Bearer {{token}}

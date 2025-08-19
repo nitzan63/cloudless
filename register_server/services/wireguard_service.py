@@ -9,11 +9,11 @@ from services.base_service import BaseService
 from services.provider_service import ProviderService
 
 class WireguardService(BaseService):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, wireguard_server_url: str):
+        super().__init__(wireguard_server_url)
         self.config_path = os.environ.get('CONFIG_PATH', "/etc/wireguard/wg0.conf")
         self.server_network_ip = os.environ.get('SERVER_NETWORK_IP', "10.10.0.0")
-        self.server_port = os.environ.get('SERVER_PORT', 51820)
+        self.server_port = os.environ.get('VPN_SERVER_PORT', 51820)
         self.provider_service = ProviderService(os.environ.get('DATA_SERVICE_URL', "http://localhost:8002"))
         # server public ip
         self.server_endpoint = self.get_device_public_ip()
@@ -26,7 +26,6 @@ class WireguardService(BaseService):
         Generates wg0.conf with all connected peers.
         providers: list of dicts with keys: public_key, allowed_ip, endpoint
         """
-        # TODO: Fix the provider generation
         interface_config = "\n".join([
             "[Interface]",
             f"PrivateKey = {self.server_private_key}",
@@ -43,18 +42,8 @@ AllowedIPs = {p['network_ip']}/32
 """
             conf.append(peer.strip())
         
-        if len(providers) == 0:
-            content = interface_config.strip()
-        else:
-            content = '\n\n'.join(conf)
-        
-        self.write_to_wg_config(content)
-    
-    def write_to_wg_config(self, content):
-        # Write content using sudo tee
-        process = subprocess.Popen(['sudo', 'tee', self.config_path], 
-                                stdin=subprocess.PIPE, text=True)
-        process.communicate(input=content)
+        print("Final config:", conf)        
+
 
     def generate_client_wg_conf(self, client_private_key: str, client_ip: str):
         """
@@ -67,13 +56,12 @@ AllowedIPs = {p['network_ip']}/32
         conf = f"""[Interface]
 PrivateKey = {client_private_key}
 Address = {client_ip}/32
-ListenPort = {self.server_port}
 DNS = 1.1.1.1
 
 [Peer]
 PublicKey = {self.server_public_key}
-Endpoint = {self.server_endpoint}:{self.server_port}
 AllowedIPs = {self.server_network_ip}/24
+Endpoint = {self.server_endpoint}:{self.server_port}
 PersistentKeepalive = 25
 """
         return conf
@@ -88,93 +76,56 @@ PersistentKeepalive = 25
 
 
     def add_provider(self, public_key: str, network_ip: str):
-        """
-        Adds a single provider (peer) to wg0.conf
-        """
-        # TODO: Understand how to add specific endpoints without downtime
-        cmd = [
-            "sudo", "wg", "set", "wg0",
-            "peer", public_key,
-            "allowed-ips", f"{network_ip}/32",
-            "endpoint", self.server_endpoint,
-            "persistent-keepalive", "25"
-        ]
+        response = requests.post(f"{self.base_url}/add-peer", json={"peer_public_key": public_key, "allowed_ips": network_ip})
+        return response.json()
 
-        # Run the command
-        result = subprocess.run(cmd, capture_output=True, text=True)
+    def reload_wg(self):
+        response = requests.get(f"{self.base_url}/reload")
+        return response.json()
 
-
-    def remove_provider_from_conf(self, public_key: str, conf_path: str = "/etc/wireguard/wg0.conf"):
-        """
-        Removes a provider (peer) from wg0.conf by public key
-        """
-        if not os.path.exists(conf_path):
-            return
-        with open(conf_path, 'r') as f:
-            lines = f.readlines()
-        new_lines = []
-        skip = False
-        for line in lines:
-            if line.strip().startswith('[Peer]'):
-                skip = False
-                peer_block = []
-            if skip:
-                continue
-            peer_block.append(line)
-            if line.strip().startswith('PublicKey =') and public_key in line:
-                skip = True
-                peer_block = []
-                continue
-            if not skip:
-                new_lines.extend(peer_block)
-                peer_block = []
-        with open(conf_path, 'w') as f:
-            f.writelines(new_lines)
-
-    def apply_wg_changes(self):
-        subprocess.run(['sudo', 'wg', 'syncconf', 'wg0', self.config_path])
-    
-    def start_wg_server(self):
-        print("Stopping...")
-        subprocess.run(['sudo', 'systemctl', 'stop', 'wg-quick@wg0'])
-        time.sleep(5)
-        print("Starting...")
-        subprocess.run(['sudo', 'systemctl', 'start', 'wg-quick@wg0'])
-
-    def generate_keypair(self):
-        """
-        Generates a WireGuard public/private key pair.
-        Returns:
-            Tuple[str, str]: (private_key, public_key)
-        """
-        private_key = subprocess.check_output(["wg", "genkey"]).decode().strip()
-        public_key = subprocess.check_output(
-            ["wg", "pubkey"], input=private_key.encode()
-        ).decode().strip()
-        return private_key, public_key
-
-    import subprocess
+    def restart_wg(self):
+        response = requests.get(f"{self.base_url}/restart")
+        return response.json()
 
     def get_wg_keys(self):
-        # This might work without sudo depending on your setup
-        private = subprocess.run(['sudo', 'wg', 'show', 'wg0', 'private-key'], 
-                            capture_output=True, text=True)
-        public = subprocess.run(['sudo', 'wg', 'show', 'wg0', 'public-key'], 
-                            capture_output=True, text=True)
-        
-        if private.returncode != 0:
-            private = os.environ.get('PRIVATE_KEY', "")
-        else:
-            private = private.stdout.strip()
-        if public.returncode != 0:
-            public = os.environ.get('PUBLIC_KEY', "")
-        else:
-            public = public.stdout.strip()
-        
-        return private, public
+        response = requests.get(f"{self.base_url}/keys")
+        res_json = response.json()  
+        return res_json["private_key"], res_json["public_key"]
 
+    def generate_keypair(self):
+        response = requests.get(f"{self.base_url}/generate-keys")
+        res_json = response.json()  
+        return res_json["private_key"], res_json["public_key"]
 
     def get_device_public_ip(self):
-        result = subprocess.run(['curl', '-s', 'ifconfig.me'], 
-                                capture_output=True, text=True)
-        return result.stdout.strip()
+        is_local_env = (os.environ.get('LOCAL_ENV', "false") == "true")
+        if is_local_env:
+            return "127.0.0.1"
+        try:
+            # Using different services as fallbacks
+            services = [
+                'https://api.ipify.org',
+                'https://icanhazip.com',
+                'https://ifconfig.me',
+                'https://checkip.amazonaws.com',
+                'https://httpbin.org/ip'
+            ]
+            
+            for service in services:
+                try:
+                    if service == 'https://httpbin.org/ip':
+                        response = requests.get(service, timeout=5)
+                        return response.json()['origin'].split(',')[0]
+                    else:
+                        response = requests.get(service, timeout=5)
+                        return response.text.strip()
+                except:
+                    continue
+            
+            raise Exception("Not found in any of the services")
+        except Exception as e:
+            print(f"Error getting public IP: {e}")
+            return None
+
+    def get_server_ip(self):
+        return self.server_endpoint

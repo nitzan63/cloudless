@@ -7,10 +7,18 @@ from PyQt5.QtGui import QFont, QPalette, QColor, QIcon
 from services.register_service import RegisterService
 import os
 from services.auth_service import AuthService
+from services.secrets_service import SecretsService
+from services.files_service import FilesService
+from services.docker_runner_service import DockerRunnerService
+from dotenv import load_dotenv
+
+load_dotenv()
 
 auth_service = AuthService(os.environ.get('AUTH_SERVICE_URL', "http://localhost:8003"))
-register_service = RegisterService(os.environ.get('REGISTER_SERVICE_URL', "http://localhost:8001"))
-config_path = os.environ.get('CONFIG_PATH', "")
+secrets_service = SecretsService()
+register_service = RegisterService(os.environ.get('REGISTER_SERVICE_URL', "http://localhost:8001"), secrets_service)
+files_service = FilesService("CloudlessLocalProvider", "Cloudless")
+docker_runner_service = DockerRunnerService()
 
 # --- Dark Mode Palette ---
 def set_dark_mode(app):
@@ -96,7 +104,7 @@ class LoginPage(QWidget):
         try:
             result = auth_service.login(username, password)
             if 'access_token' in result:
-                # Save the access token in the MainWindow
+                secrets_service.save_token(result['access_token'])
                 parent = self.parent()
                 while parent is not None and not hasattr(parent, 'access_token'):
                     parent = parent.parent()
@@ -203,19 +211,30 @@ class ResourcePage(QWidget):
             self.stop_logic()
 
     def start_logic(self):
-        # Placeholder for starting logic
-        pass
+        data = register_service.register()
+        if 'status' in data and data['status'] == "NEW_USER_REGISTERED":
+            files_service.save_config("wg0.conf", data['conf'])
+        container_id = docker_runner_service.run(
+            image="spark-worker-vpn",
+            container_name="spark-worker-1",
+            port_map="8881:8881",
+            env_vars={"SPARK_MASTER_IP": data['server_ip']},
+            volume_map={
+                files_service.get_config_path(): "/etc/wireguard"
+            },
+            additional_flags=["--cap-add=NET_ADMIN", "--device", "/dev/net/tun"]
+        )
+        print(f"Container {container_id} started running")
 
     def stop_logic(self):
-        # Placeholder for stopping logic
-        pass
+        docker_runner_service.stop_and_remove()
 
 # --- Main Application ---
 class MainWindow(QStackedWidget):
     def __init__(self):
         super().__init__()
         # Main title at the top (easy to change)
-        self.main_title = QLabel("Cloudless Provider Agent (Change Me)")
+        self.main_title = QLabel("Cloudless Provider Agent")
         self.main_title.setFont(QFont("Segoe UI", 22, QFont.Bold))
         self.main_title.setAlignment(Qt.AlignCenter)
         self.main_title.setStyleSheet("color: #7ecfff; margin: 16px 0 8px 0;")
@@ -254,6 +273,19 @@ class MainWindow(QStackedWidget):
 
     def show_main(self):
         self.setCurrentIndex(2)
+    
+    def cleanup_function(self):
+        docker_runner_service.stop_and_remove()
+
+    def closeEvent(self, event):
+        """This function is called when the window is closed"""
+        print("Window is closing...")
+        
+        # Your cleanup code here
+        self.cleanup_function()
+        
+        # Accept the close event (allow window to close)
+        event.accept()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
