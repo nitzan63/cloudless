@@ -18,5 +18,7 @@ word_counts = (
 for word, count in word_counts.collect():
     print(f"{word}: {count}")
 
+time.sleep(20)
+
 # Stop Spark Session
 spark.stop()
