@@ -29,6 +29,9 @@ class LivyService(BaseService):
             "name": name,
             "className": "org.apache.spark.deploy.SparkSubmit",
             "conf": {
+                "spark.master": "spark://wireguard:7077",
+                "spark.driver.host": "livy",
+                "spark.driver.port": "7078",
                 "spark.driver.port": "7078",
                 "spark.blockManager.port": "7079",
                 "spark.driver.bindAddress": "0.0.0.0",
