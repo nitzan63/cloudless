@@ -151,6 +151,11 @@ services:
     environment:
       - SPARK_MODE=master
       - PYSPARK_PYTHON=python
+      - SPARK_MASTER_HOST=0.0.0.0 # Bind to all interfaces
+      - SPARK_MASTER_PORT=7077
+      - SPARK_MASTER_WEBUI_PORT=8080
+      - SPARK_LOCAL_IP=10.10.0.1
+      - SPARK_PUBLIC_DNS=10.10.0.1
       - SPARK_MASTER_URL=spark://10.10.0.1:7077
       - SPARK_MASTER_OPTS=-Dspark.master.rest.enabled=true -Dspark.master.rest.port=6066
     depends_on:

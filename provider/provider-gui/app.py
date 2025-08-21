@@ -218,7 +218,7 @@ class ResourcePage(QWidget):
             image="spark-worker-vpn",
             container_name="spark-worker-1",
             port_map="8881:8881",
-            env_vars={"SPARK_MASTER_IP": data['server_ip']},
+            env_vars={"SPARK_MASTER_IP": "10.10.0.1"},
             volume_map={
                 files_service.get_config_path(): "/etc/wireguard"
             },
