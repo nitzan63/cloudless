@@ -151,7 +151,7 @@ services:
     environment:
       - SPARK_MODE=master
       - PYSPARK_PYTHON=python
-      # - SPARK_MASTER_URL=spark://34.173.111.175:7077
+      - SPARK_MASTER_URL=spark://34.173.111.175:7077
       - SPARK_MASTER_OPTS=-Dspark.master.rest.enabled=true -Dspark.master.rest.port=6066
     depends_on:
       - wireguard
@@ -178,6 +178,8 @@ services:
     environment:
       - SPARK_HOME=/opt/bitnami/spark
       - LIVY_SPARK_MASTER=spark://wireguard:7077
+      - PYSPARK_PYTHON=python3
+      - PYSPARK_DRIVER_PYTHON=python3
     depends_on:
       - spark-master
     networks:
