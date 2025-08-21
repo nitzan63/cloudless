@@ -26,7 +26,18 @@ class LivyService(BaseService):
         """
         data = {
             "file": file_path,
-            "name": name
+            "name": name,
+            "className": "org.apache.spark.deploy.SparkSubmit",
+            "conf": {
+                "spark.driver.port": "7078",
+                "spark.blockManager.port": "7079",
+                "spark.driver.bindAddress": "0.0.0.0",
+                "spark.jars.ivy": "/tmp/.ivy2",
+                "spark.submit.deployMode": "client",
+                "spark.driver.memory": "2g",
+                "spark.executor.memory": "2g",
+                "spark.executor.instances": "2"
+            }
         }
         resp = requests.post(f"{self.base_url}/batches", json=data)
         if verbose:
