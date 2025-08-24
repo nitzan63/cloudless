@@ -151,13 +151,31 @@ services:
     environment:
       - SPARK_MODE=master
       - PYSPARK_PYTHON=python
-      - SPARK_MASTER_HOST=0.0.0.0 # Bind to all interfaces
+      - SPARK_MASTER_HOST=0.0.0.0
       - SPARK_MASTER_PORT=7077
       - SPARK_MASTER_WEBUI_PORT=8080
       - SPARK_LOCAL_IP=10.10.0.1
       - SPARK_PUBLIC_DNS=10.10.0.1
       - SPARK_MASTER_URL=spark://10.10.0.1:7077
       - SPARK_MASTER_OPTS=-Dspark.master.rest.enabled=true -Dspark.master.rest.port=6066
+      - SPARK_EVENTLOG_ENABLED=true
+      - SPARK_EVENTLOG_DIR=/shared/spark-events
+    depends_on:
+      - wireguard
+    volumes:
+      - spark-events:/shared/spark-events
+
+  spark-history:
+    image: bitnami/spark:4.0.0
+    container_name: spark-history
+    network_mode: "service:wireguard"
+    environment:
+      - SPARK_MODE=history
+      - SPARK_HISTORY_FS_LOG_DIRECTORY=/shared/spark-events
+      - SPARK_HISTORY_UI_PORT=18080
+      - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=/shared/spark-events -Dspark.history.ui.port=18080
+    volumes:
+      - spark-events:/shared/spark-events
     depends_on:
       - wireguard
 
@@ -195,6 +213,7 @@ services:
     #   - cloudless-net
     volumes:
       - shared-data:/app/scripts
+      - spark-events:/shared/spark-events
 
   wireguard:
     build:
@@ -216,6 +235,8 @@ services:
       - "7079:7079"
       - "8080:8080"
       - "6066:6066"
+      - "18080:18080"
+      - "8998:8998"
     volumes:
       - ./config:/etc/wireguard:rw
       - ./peers:/etc/wireguard/peers:ro
@@ -240,3 +261,4 @@ networks:
 volumes:
   postgres_data:
   shared-data:
+  spark-events:
