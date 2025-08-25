@@ -1,10 +1,12 @@
 import os
 import logging
 import requests
+import re
 from apscheduler.schedulers.blocking import BlockingScheduler
 from dotenv import load_dotenv
 from services.task_service import TaskService
 from services.livy_service import LivyService
+from bs4 import BeautifulSoup
 load_dotenv()
 
 task_service = TaskService(os.environ.get('DATA_SERVICE_URL', 'http://localhost:8002'))
@@ -32,9 +34,42 @@ def get_livy_status(batch_id):
         logging.error(f"Error fetching Livy status for batch {batch_id}: {e}")
         return None
 
-def update_task_status(task_id, new_status, logs):
+def get_app_id_from_logs(logs):
+    match = re.search(r'app-\d{14}-\d{4}', logs)
+    if match:
+        return match.group()
+    return ""
+
+def get_executors(app_id):
     try:
-        task_service.update_task(task_id, {"status": new_status, "logs": logs})
+        spark_ui_url = os.environ.get('SPARK_UI_URL', 'http://10.10.0.1:8080')
+        url = f"{spark_ui_url}/app/?appId={app_id}"
+        response = requests.get(url)
+        html = response.text
+
+        soup = BeautifulSoup(html, "html.parser")
+        worker_ids = []
+        for table in soup.find_all("table"):
+            for row in table.find_all("tr"):
+                cells = row.find_all("td")
+                if len(cells) >= 2:
+                    worker_link = cells[1].find("a")
+                    if worker_link:
+                        worker_ids.append(worker_link.text.strip())
+        return worker_ids
+    except Exception as e:
+        logging.error(f"Can't get workers from {app_id}, Message: {str(e)}")
+        return []
+
+
+def update_task_status(task_id, new_status, logs, app_id, executors):
+    try:
+        task_service.update_task(task_id, {
+            "status": new_status,
+            "logs": logs,
+            "app_id": app_id,
+            "executors": executors 
+        })
         logging.info(f"Task {task_id} status updated: {new_status}")
     except Exception as e:
         logging.error(f"Error updating task {task_id} status: {e}")
@@ -54,7 +89,9 @@ def job():
             elif status == 'success':
                 db_status = 'completed'
             logs = livy_service.get_batch_logs(batch_id)
-            update_task_status(task_id, db_status, logs)
+            app_id = get_app_id_from_logs(logs)
+            executors = get_executors(app_id)
+            update_task_status(task_id, db_status, logs, app_id, executors)
 
 if __name__ == '__main__':
     scheduler = BlockingScheduler()

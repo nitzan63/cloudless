@@ -109,18 +109,18 @@ services:
   job-update-service:
     image: job-update-service:latest
     container_name: job-update-service
+    network_mode: "service:wireguard"
     build:
       context: ./job_update_service
       dockerfile: Dockerfile
     environment:
       - DATA_SERVICE_URL=http://data-service:8002
       - LIVY_URL=http://wireguard:8998
+      - SPARK_UI_URL=http://10.10.0.1:8080
       - INTERVAL_SECONDS=30
     depends_on:
       - data-service
       - wireguard
-    networks:
-      - cloudless-net
 
   register-service:
     image: register-service:latest
@@ -165,23 +165,29 @@ services:
     volumes:
       - spark-events:/shared/spark-events
 
-  spark-history:
-    image: bitnami/spark:4.0.0
-    container_name: spark-history
-    network_mode: "service:wireguard"
-    environment:
-      - SPARK_MODE=history
-      - SPARK_HISTORY_FS_LOG_DIRECTORY=/shared/spark-events
-      - SPARK_HISTORY_UI_PORT=18080
-      - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=/shared/spark-events -Dspark.history.ui.port=18080
-    volumes:
-      - spark-events:/shared/spark-events
-    depends_on:
-      - wireguard
+  # spark-history:
+  #   image: bitnami/spark:4.0.0
+  #   container_name: spark-history
+  #   network_mode: "service:wireguard"
+  #   environment:
+  #     - SPARK_HISTORY_FS_LOG_DIRECTORY=/shared/spark-events
+  #     - SPARK_HISTORY_UI_PORT=18080
+  #     - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=/shared/spark-events -Dspark.history.ui.port=18080
+  #   volumes:
+  #     - spark-events:/shared/spark-events
+  #   depends_on:
+  #     - wireguard
+  #   command:
+  #     [
+  #       "/bin/bash",
+  #       "-c",
+  #       "mkdir -p /shared/spark-events && ./sbin/start-history-server.sh",
+  #     ]
 
   # spark-worker:
   #   image: bitnami/spark:4.0.0
   #   container_name: spark-worker
+  #   network_mode: "service:wireguard"
   #   environment:
   #     - SPARK_MODE=worker
   #     - SPARK_MASTER_URL=spark://wireguard:7077
@@ -189,8 +195,6 @@ services:
   #     - SPARK_WORKER_CORES=2
   #   depends_on:
   #     - spark-master
-  #   networks:
-  #     - cloudless-net
 
   livy:
     image: livy:latest
@@ -209,8 +213,6 @@ services:
       - SPARK_PUBLIC_DNS=10.10.0.1
     depends_on:
       - spark-master
-    # networks:
-    #   - cloudless-net
     volumes:
       - shared-data:/app/scripts
       - spark-events:/shared/spark-events
