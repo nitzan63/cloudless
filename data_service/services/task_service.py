@@ -22,11 +22,13 @@ class TaskService:
                 batch_job_id INTEGER,
                 logs TEXT,
                 app_id TEXT,
-                executors TEXT
+                executors TEXT,
+                duration INTEGER,
+                given_credits BOOLEAN
             );
         """)
 
-    def create_task(self, created_by, requested_workers_amount, file_path, file_name, app_id=None, executors=None):
+    def create_task(self, created_by, requested_workers_amount, file_path, file_name, app_id=None, executors=None, duration=None, given_credits=False):
         task_id = str(uuid.uuid4())
         creation_time = datetime.utcnow()
         
@@ -34,9 +36,9 @@ class TaskService:
         executors_json = json.dumps(executors) if executors else None
         
         self.db.execute("""
-            INSERT INTO task (id, creation_time, created_by, requested_workers_amount, script_path, main_file_name, status, batch_job_id, logs, app_id, executors)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (task_id, creation_time, created_by, requested_workers_amount, file_path, file_name, 'submitted', None, None, app_id, executors_json))
+            INSERT INTO task (id, creation_time, created_by, requested_workers_amount, script_path, main_file_name, status, batch_job_id, logs, app_id, executors, duration, given_credits)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (task_id, creation_time, created_by, requested_workers_amount, file_path, file_name, 'submitted', None, None, app_id, executors_json, duration, bool(given_credits)))
         return task_id
 
     def get_task(self, task_id):
@@ -66,7 +68,7 @@ class TaskService:
         return file_data
 
     def update_task(self, task_id, **kwargs):
-        allowed_fields = {"created_by", "requested_workers_amount", "script_path", "main_file_name", "status", "batch_job_id", "logs", "app_id", "executors"}
+        allowed_fields = {"created_by", "requested_workers_amount", "script_path", "main_file_name", "status", "batch_job_id", "logs", "app_id", "executors", "duration", "given_credits"}
         fields = []
         values = []
         for key, value in kwargs.items():
