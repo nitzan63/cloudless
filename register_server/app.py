@@ -46,11 +46,12 @@ def register():
         user_id = g.user_id
 
         try:
-            user = provider_service.get_provider(user_id)
-            if user:
+            provider = provider_service.get_provider(user_id)
+            if provider:
                 return jsonify({
                     "server_ip": wireguard_service.get_server_ip(),
-                    "status": "EXISTING_USER_REGISTERED"
+                    "status": "EXISTING_USER_REGISTERED",
+                    "network_ip": provider["network_ip"]
                 }), 200
         except Exception:
             pass
@@ -70,7 +71,7 @@ def register():
         return jsonify({"error": str(e)}), 500
 
     return jsonify({
-        "client_ip": created_provider['ip'],
+        "network_ip": created_provider['ip'],
         "server_ip": wireguard_service.get_server_ip(),
         "conf": conf,
         "status": "NEW_USER_REGISTERED"
