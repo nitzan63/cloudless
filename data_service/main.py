@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api import tasks, providers, storage, users
+from api import tasks, providers, storage, users, credits
 
 app = FastAPI(title="Data Service")
 
@@ -17,3 +17,4 @@ app.include_router(tasks.router, prefix="/tasks")
 app.include_router(providers.router, prefix="/providers")
 app.include_router(storage.router, prefix="/storage")
 app.include_router(users.router, prefix="/users")
+app.include_router(credits.router, prefix="/credits")

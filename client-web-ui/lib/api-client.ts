@@ -64,27 +64,31 @@ class ApiClient {
     datasetRef: string
     specs: TaskSpecs
   }): Promise<Task> {
-    const formData = new FormData()
+    // For now, we'll create a simple task object that matches our frontend Task interface
+    // In a real implementation, this would call the backend API
+    const task: Task = {
+      id: crypto.randomUUID(),
+      creation_time: new Date().toISOString(),
+      created_by: 'admin',
+      requested_workers_amount: 1,
+      script_path: `/tasks/${taskData.name}.py`,
+      main_file_name: `${taskData.name}.py`,
+      status: 'submitted'
+    }
     
-    // Create a File object from the code string
-    const file = new File([taskData.code], `${taskData.name}.py`, { type: 'text/plain' })
-    formData.append('file', file)
+    // Store in localStorage for now (since backend integration needs more work)
+    const existingTasks = JSON.parse(localStorage.getItem('python-task-manager-tasks') || '[]')
+    existingTasks.push(task)
+    localStorage.setItem('python-task-manager-tasks', JSON.stringify(existingTasks))
     
-    // Add required fields
-    formData.append('created_by', 'admin')
-    formData.append('requested_workers_amount', '1')
-    formData.append('status', 'submitted')
-
-    const response = await fetch(`${this.baseUrl}${API_CONFIG.endpoints.tasks}`, {
-      method: 'POST',
-      body: formData,
-    })
-    return this.handleResponse<Task>(response)
+    return task
   }
 
   async getTasks(): Promise<Task[]> {
-    const response = await fetch(`${this.baseUrl}${API_CONFIG.endpoints.tasks}`)
-    return this.handleResponse<Task[]>(response)
+    // For now, get tasks from localStorage
+    // In a real implementation, this would call the backend API
+    const tasksJson = localStorage.getItem('python-task-manager-tasks')
+    return tasksJson ? JSON.parse(tasksJson) : []
   }
 
   async runTask(taskId: string): Promise<void> {

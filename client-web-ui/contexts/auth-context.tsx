@@ -6,6 +6,7 @@ interface User {
   id: string
   username: string
   type: 'provider' | 'submitter'
+  credits: number
 }
 
 interface AuthContextType {
@@ -15,6 +16,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>
   register: (username: string, password: string, type: 'provider' | 'submitter') => Promise<void>
   logout: () => void
+  refreshCredits: () => Promise<void>
   loading: boolean
 }
 
@@ -86,7 +88,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const user: User = {
         id: userData.id,
         username: userData.username,
-        type: userData.type
+        type: userData.type,
+        credits: userData.credits || 5 // Default to 5 credits for new users
       }
 
       // Save to state and localStorage
@@ -138,6 +141,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('user')
   }
 
+  const refreshCredits = async () => {
+    if (!user) return
+    
+    try {
+      const response = await fetch(`http://localhost:8002/users/${user.username}`)
+      if (response.ok) {
+        const userData = await response.json()
+        const updatedUser = { ...user, credits: userData.credits || user.credits }
+        setUser(updatedUser)
+        localStorage.setItem('user', JSON.stringify(updatedUser))
+      }
+    } catch (error) {
+      console.error('Failed to refresh credits:', error)
+    }
+  }
+
   const value: AuthContextType = {
     user,
     token,
@@ -145,6 +164,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     register,
     logout,
+    refreshCredits,
     loading,
   }
 

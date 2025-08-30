@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Cloud, Plus, LogOut, User, Settings, ChevronDown } from "lucide-react"
+import { Cloud, Plus, LogOut, User, Settings, ChevronDown, Coins } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
 import {
@@ -41,6 +41,15 @@ export default function Navbar() {
               <Button asChild>
                 <Link href="/tasks">View Tasks</Link>
               </Button>
+              
+              {/* Credit Display */}
+              <div className="flex items-center space-x-2 px-3 py-2 bg-muted/50 rounded-lg border border-border">
+                <Coins className="h-4 w-4 text-yellow-500" />
+                <span className="text-sm font-medium text-foreground">
+                  {user?.credits || 0} credits
+                </span>
+              </div>
+              
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center space-x-2 hover:bg-muted">
