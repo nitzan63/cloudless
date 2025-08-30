@@ -4,16 +4,18 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Cloud, Plus, LogOut } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
+import { useRouter } from "next/navigation"
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth()
+  const router = useRouter()
 
   return (
     <nav className="border-b border-border bg-background/80 backdrop-blur-sm">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <div className="flex items-center space-x-2">
           <Cloud className="h-8 w-8 text-primary" />
-          <Link href="/" className="text-2xl font-bold text-foreground">
+          <Link href="/landing" className="text-2xl font-bold text-foreground">
             Cloudless
           </Link>
         </div>
@@ -35,7 +37,10 @@ export default function Navbar() {
                 <span className="text-sm text-muted-foreground">
                   {user?.username} ({user?.type})
                 </span>
-                <Button variant="ghost" size="sm" onClick={logout}>
+                <Button variant="ghost" size="sm" onClick={() => {
+                  logout()
+                  router.push('/landing')
+                }}>
                   <LogOut className="h-4 w-4" />
                 </Button>
               </div>
