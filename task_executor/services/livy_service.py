@@ -26,7 +26,7 @@ class LivyService(BaseService):
         """
         data = {
             "file": file_path,
-            "name": name
+            "name": name,
         }
         resp = requests.post(f"{self.base_url}/batches", json=data)
         if verbose:

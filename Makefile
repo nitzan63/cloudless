@@ -61,3 +61,9 @@ remove-none-docker-images:
 
 package-provider-gui:
 	cd ./provider/provider-gui && venv\Scripts\activate && pyinstaller --noconfirm --windowed app.py
+
+convert-crlf-lf:
+	powershell -Command "(Get-Content wireguard\entrypoint.sh) -join \"`n\" | Set-Content wireguard\entrypoint.sh -NoNewline"
+
+copy-script-spark:
+	docker cp ./provider/spark/example_jobs/wordcount.py spark-master:/opt/bitnami/spark/wordcount.py

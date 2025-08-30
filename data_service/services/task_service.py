@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 from db.postgres_db import PostgresDB
 from config import storage_service
+import json
 
 class TaskService:
     def __init__(self):
@@ -19,17 +20,25 @@ class TaskService:
                 main_file_name TEXT NOT NULL,
                 status TEXT NOT NULL,
                 batch_job_id INTEGER,
-                logs TEXT
+                logs TEXT,
+                app_id TEXT,
+                executors TEXT,
+                duration INTEGER,
+                given_credits BOOLEAN
             );
         """)
 
-    def create_task(self, created_by, requested_workers_amount, file_path, file_name):
+    def create_task(self, created_by, requested_workers_amount, file_path, file_name, app_id=None, executors=None, duration=None, given_credits=False):
         task_id = str(uuid.uuid4())
         creation_time = datetime.utcnow()
+        
+        # Convert executors list to JSON string if provided
+        executors_json = json.dumps(executors) if executors else None
+        
         self.db.execute("""
-            INSERT INTO task (id, creation_time, created_by, requested_workers_amount, script_path, main_file_name, status, batch_job_id, logs)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (task_id, creation_time, created_by, requested_workers_amount, file_path, file_name, 'submitted', None, None))
+            INSERT INTO task (id, creation_time, created_by, requested_workers_amount, script_path, main_file_name, status, batch_job_id, logs, app_id, executors, duration, given_credits)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (task_id, creation_time, created_by, requested_workers_amount, file_path, file_name, 'submitted', None, None, app_id, executors_json, duration, bool(given_credits)))
         return task_id
 
     def get_task(self, task_id):
@@ -38,7 +47,16 @@ class TaskService:
         rows = cursor.fetchall()
         if rows:
             columns = [desc[0] for desc in cursor.description]
-            return dict(zip(columns, rows[0]))
+            task_dict = dict(zip(columns, rows[0]))
+            
+            # Convert executors JSON string back to list if it exists
+            if task_dict.get('executors'):
+                try:
+                    task_dict['executors'] = json.loads(task_dict['executors'])
+                except (json.JSONDecodeError, TypeError):
+                    task_dict['executors'] = None
+            
+            return task_dict
         return None
 
     def get_task_to_execute(self, task_id):
@@ -50,11 +68,14 @@ class TaskService:
         return file_data
 
     def update_task(self, task_id, **kwargs):
-        allowed_fields = {"created_by", "requested_workers_amount", "script_path", "main_file_name", "status", "batch_job_id", "logs"}
+        allowed_fields = {"created_by", "requested_workers_amount", "script_path", "main_file_name", "status", "batch_job_id", "logs", "app_id", "executors", "duration", "given_credits"}
         fields = []
         values = []
         for key, value in kwargs.items():
             if key in allowed_fields:
+                if key == "executors" and value is not None:
+                    # Convert executors list to JSON string
+                    value = json.dumps(value)
                 fields.append(f"{key} = %s")
                 values.append(value)
         if not fields:
@@ -76,7 +97,17 @@ class TaskService:
             if not rows:
                 return []
             columns = [desc[0] for desc in cur.description]
-            return [dict(zip(columns, row)) for row in rows]
+            tasks = []
+            for row in rows:
+                task_dict = dict(zip(columns, row))
+                # Convert executors JSON string back to list if it exists
+                if task_dict.get('executors'):
+                    try:
+                        task_dict['executors'] = json.loads(task_dict['executors'])
+                    except (json.JSONDecodeError, TypeError):
+                        task_dict['executors'] = None
+                tasks.append(task_dict)
+            return tasks
 
     def get_tasks_not_finished(self):
         with self.db.conn.cursor() as cur:
@@ -85,4 +116,14 @@ class TaskService:
             if not rows:
                 return []
             columns = [desc[0] for desc in cur.description]
-            return [dict(zip(columns, row)) for row in rows]
+            tasks = []
+            for row in rows:
+                task_dict = dict(zip(columns, row))
+                # Convert executors JSON string back to list if it exists
+                if task_dict.get('executors'):
+                    try:
+                        task_dict['executors'] = json.loads(task_dict['executors'])
+                    except (json.JSONDecodeError, TypeError):
+                        task_dict['executors'] = None
+                tasks.append(task_dict)
+            return tasks
