@@ -6,6 +6,7 @@ import httpx
 import os
 from datetime import datetime, timedelta
 from functools import partial
+from fastapi.middleware.cors import CORSMiddleware
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "supersecretkey")
 ALGORITHM = "HS256"
@@ -13,6 +14,15 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 DATA_SERVICE_URL = os.environ.get("DATA_SERVICE_URL", "http://localhost:8002")
 
 app = FastAPI(title="Auth Service")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Your React UI
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
