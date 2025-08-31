@@ -1,10 +1,13 @@
 PYTHON = venv/Scripts/python
 
-services:
+cloudless:
 	docker compose up -d
 
-stop-services:
+stop-cloudless:
 	docker compose down
+
+reset-cloudless:
+	docker compose down -v
 
 local-env:
 	docker compose -f local-env-docker-compose.yml up -d --build
@@ -74,7 +77,6 @@ convert-crlf-lf:
 copy-script-spark:
 	docker cp ./provider/spark/example_jobs/wordcount.py spark-master:/opt/bitnami/spark/wordcount.py
 
-# React Web UI
 ui:
 	cd client-web-ui && \
 	(npm list react >/dev/null 2>&1 || npm install --legacy-peer-deps --force) && \

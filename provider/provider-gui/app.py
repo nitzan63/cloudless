@@ -1086,7 +1086,7 @@ class MainDashboard(QMainWindow):
     
     def show_profile(self):
         self.profile_dialog = UserProfileDialog(self)
-        self.profile_dialog.exec_()  # Use exec_() for modal dialog
+        self.profile_dialog.exec_()
     
     def show_details(self):
         try:
