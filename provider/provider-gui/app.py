@@ -216,8 +216,23 @@ class ResourceWorker(QObject):
                 
             elif self.operation == "stop":
                 self.progress.emit("Stopping container...")
-                docker_runner_service.stop_and_remove()
-                self.finished.emit({"status": "stopped"})
+                
+                # First try to stop by container key
+                success = docker_runner_service.stop_and_remove("spark-worker-1")
+                if success:
+                    self.finished.emit({"status": "stopped"})
+                else:
+                    # Check if there are any saved containers and try to stop them
+                    containers = docker_runner_service.list_saved_containers()
+                    if containers:
+                        # Try to stop each saved container
+                        for key in containers.keys():
+                            docker_runner_service.stop_and_remove(key)
+                    
+                    # Also try the generic stop (uses self.container_id)
+                    docker_runner_service.stop_and_remove()
+                    
+                    self.finished.emit({"status": "stopped"})
                 
         except Exception as e:
             self.error.emit(str(e))
@@ -773,6 +788,8 @@ class NetworkInfoWidget(QGroupBox):
         self.network_ip_value = QLabel("Not connected")
         self.status_label = QLabel("Status:")
         self.status_value = QLabel("Offline")
+        self.uptime_label = QLabel("Running Time:")
+        self.uptime_value = QLabel("Not running")
         
         layout.addWidget(self.local_ip_label, 0, 0)
         layout.addWidget(self.local_ip_value, 0, 1)
@@ -780,6 +797,8 @@ class NetworkInfoWidget(QGroupBox):
         layout.addWidget(self.network_ip_value, 1, 1)
         layout.addWidget(self.status_label, 2, 0)
         layout.addWidget(self.status_value, 2, 1)
+        layout.addWidget(self.uptime_label, 3, 0)
+        layout.addWidget(self.uptime_value, 3, 1)
         
         self.setLayout(layout)
         self.get_local_ip()
@@ -798,6 +817,13 @@ class NetworkInfoWidget(QGroupBox):
     def set_status(self, status, color="#4CAF50"):
         self.status_value.setText(status)
         self.status_value.setStyleSheet(f"color: {color}; font-weight: bold;")
+    
+    def set_uptime(self, uptime):
+        self.uptime_value.setText(uptime)
+        if uptime == "Not running":
+            self.uptime_value.setStyleSheet("color: #999;")
+        else:
+            self.uptime_value.setStyleSheet("color: #4CAF50; font-weight: bold;")
 
 # --- System Resources Widget ---
 class SystemResourcesWidget(QGroupBox):
@@ -1035,8 +1061,14 @@ class MainDashboard(QMainWindow):
         
         central_widget.setLayout(main_layout)
         
-        # Load initial credits
+        # Load initial credits and container state
         self.load_initial_data()
+        self.load_container_state()
+        
+        # Setup uptime update timer - update every 30 seconds
+        self.uptime_timer = QTimer()
+        self.uptime_timer.timeout.connect(self.update_uptime)
+        self.uptime_timer.start(30000)  # Update every 30 seconds
     
     def create_menu_bar(self):
         menubar = self.menuBar()
@@ -1061,7 +1093,7 @@ class MainDashboard(QMainWindow):
         # View menu
         view_menu = menubar.addMenu('View')
         refresh_action = QAction('Refresh Data', self)
-        refresh_action.triggered.connect(self.load_initial_data)
+        refresh_action.triggered.connect(self.refresh_all_data)
         view_menu.addAction(refresh_action)
         
         # Tools menu
@@ -1069,10 +1101,6 @@ class MainDashboard(QMainWindow):
         details_action = QAction('Show Details', self)
         details_action.triggered.connect(self.show_details)
         tools_menu.addAction(details_action)
-        
-        test_animation_action = QAction('Test Credits Animation', self)
-        test_animation_action.triggered.connect(self.test_credits_animation)
-        tools_menu.addAction(test_animation_action)
         
         # Help menu
         help_menu = menubar.addMenu('Help')
@@ -1098,13 +1126,6 @@ class MainDashboard(QMainWindow):
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Could not fetch details: {str(e)}")
     
-    def test_credits_animation(self):
-        """Test method to simulate credits increase"""
-        current_credits = self.credits_widget.current_credits
-        test_increase = 5
-        self.credits_widget.set_credits(current_credits + test_increase)
-        QMessageBox.information(self, "Test Animation", f"Simulated +{test_increase} credits increase!")
-    
     def handle_logout(self):
         """Handle logout with proper cleanup"""
         # Stop sharing if active
@@ -1127,6 +1148,102 @@ class MainDashboard(QMainWindow):
                 self.credits_widget.credits_label.setText(str(self.credits))
         except:
             pass
+    
+    def load_container_state(self):
+        """Load container state on startup to restore UI state"""
+        try:
+            # Check if our spark worker container is running
+            is_running = docker_runner_service.is_container_running("spark-worker-1")
+            
+            if is_running:
+                # Container is running - restore the running state
+                self.is_running = True
+                self.btn_start.setChecked(True)
+                self.btn_start.setText("Stop Sharing")
+                self.network_widget.set_status("Online", "#4CAF50")
+                
+                # Try to get network IP from register service
+                try:
+                    data = register_service.get_details()
+                    if 'network_ip' in data:
+                        self.network_ip = data['network_ip']
+                        self.network_widget.set_network_ip(self.network_ip)
+                except:
+                    self.network_widget.set_network_ip("Connected")
+                
+                # Set uptime
+                uptime = docker_runner_service.get_container_uptime("spark-worker-1")
+                self.network_widget.set_uptime(uptime)
+                
+                self.status_bar.showMessage("Resource sharing active (restored)")
+                
+                # Update activity log
+                import datetime
+                timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+                containers = docker_runner_service.list_saved_containers()
+                container_id = containers.get("spark-worker-1", "unknown")
+                
+                activity_text = f"🔄 [{timestamp}] Container state restored\n"
+                activity_text += f"🐳 Container ID: {container_id}\n"
+                activity_text += f"🌐 Status: Online\n"
+                activity_text += f"💰 Current Credits: {self.credits}"
+                self.activity_log.setText(activity_text)
+                
+            else:
+                # Container not running - ensure UI is in stopped state
+                self.is_running = False
+                self.btn_start.setChecked(False)
+                self.btn_start.setText("Start Sharing")
+                self.network_widget.set_status("Offline", "#f44336")
+                self.network_widget.set_network_ip("Not connected")
+                self.network_widget.set_uptime("Not running")
+                self.status_bar.showMessage("Ready")
+                
+                # Check if we have any saved containers that aren't running
+                containers = docker_runner_service.list_saved_containers()
+                if containers:
+                    import datetime
+                    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+                    activity_text = f"ℹ️ [{timestamp}] Previous containers found but not running\n"
+                    activity_text += f"💰 Current Credits: {self.credits}"
+                    self.activity_log.setText(activity_text)
+                else:
+                    self.activity_log.setText("🔄 Waiting for activity...")
+                    
+        except Exception as e:
+            print(f"Error loading container state: {e}")
+            # Default to stopped state on error
+            self.is_running = False
+            self.btn_start.setChecked(False)
+            self.btn_start.setText("Start Sharing")
+            self.network_widget.set_status("Offline", "#f44336")
+    
+    def refresh_all_data(self):
+        """Refresh both credits and container state"""
+        self.load_initial_data()
+        self.load_container_state()
+    
+    def update_uptime(self):
+        """Update the running time display if container is running"""
+        if self.is_running:
+            try:
+                uptime = docker_runner_service.get_container_uptime("spark-worker-1")
+                self.network_widget.set_uptime(uptime)
+            except Exception as e:
+                print(f"Error updating uptime: {e}")
+                # Check if container is still running
+                if not docker_runner_service.is_container_running("spark-worker-1"):
+                    # Container stopped unexpectedly
+                    self.is_running = False
+                    self.btn_start.setChecked(False)
+                    self.btn_start.setText("Start Sharing")
+                    self.network_widget.set_status("Offline", "#f44336")
+                    self.network_widget.set_uptime("Not running")
+                    self.status_bar.showMessage("Container stopped unexpectedly")
+                    
+                    import datetime
+                    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+                    self.activity_log.setText(f"⚠️ [{timestamp}] Container stopped unexpectedly")
     
     def toggle_start_stop(self):
         if self.btn_start.isChecked():
@@ -1185,6 +1302,7 @@ class MainDashboard(QMainWindow):
             self.credits_widget.set_credits(self.credits)
         
         self.network_widget.set_status("Online", "#4CAF50")
+        self.network_widget.set_uptime("Starting...")
         self.status_bar.showMessage(f"Resource sharing active - Container {result.get('container_id', 'unknown')}")
         
         import datetime
@@ -1229,6 +1347,7 @@ class MainDashboard(QMainWindow):
         self.is_running = False
         self.btn_start.setText("Start Sharing")
         self.network_widget.set_status("Offline", "#f44336")
+        self.network_widget.set_uptime("Not running")
         self.status_bar.showMessage("Resource sharing stopped")
         
         import datetime
@@ -1247,7 +1366,8 @@ class MainDashboard(QMainWindow):
     
     def cleanup_function(self):
         if self.is_running:
-            docker_runner_service.stop_and_remove()
+            pass
+            # docker_runner_service.stop_and_remove()
 
 # --- Legacy Resource Page (for compatibility) ---
 class ResourcePage(QWidget):
@@ -1360,7 +1480,7 @@ class MainWindow(QStackedWidget):
     def cleanup_function(self):
         if hasattr(self.main_dashboard, 'cleanup_function'):
             self.main_dashboard.cleanup_function()
-        docker_runner_service.stop_and_remove()
+        # docker_runner_service.stop_and_remove()
 
     def closeEvent(self, event):
         """This function is called when the window is closed"""
