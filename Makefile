@@ -12,6 +12,12 @@ local-env:
 stop-local-env:
 	docker compose -f local-env-docker-compose.yml down -v
 
+win-local-env:
+	docker-compose -f local-env-docker-compose.yml up -d --build
+
+win-stop-local-env:
+	docker-compose -f local-env-docker-compose.yml down -v
+
 vm-local-env:
 	docker compose -f local-env-docker-compose.yml up -d --build
 
