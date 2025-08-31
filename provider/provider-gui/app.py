@@ -1,9 +1,10 @@
 import sys
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QStackedWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QFormLayout, QSpinBox, QToolButton,
-    QMainWindow, QMenuBar, QAction, QFrame, QGridLayout, QGroupBox, QProgressBar, QSystemTrayIcon, QStatusBar, QSplitter, QTabWidget
+    QMainWindow, QMenuBar, QAction, QFrame, QGridLayout, QGroupBox, QProgressBar, QSystemTrayIcon, QStatusBar, QSplitter, QTabWidget,
+    QDialog, QMessageBox
 )
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QThread, QObject
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QThread, QObject, QPropertyAnimation, QEasingCurve, pyqtProperty, QRect
 from PyQt5.QtGui import QFont, QPalette, QColor, QIcon, QPixmap
 from services.register_service import RegisterService
 import os
@@ -222,12 +223,20 @@ class ResourceWorker(QObject):
             self.error.emit(str(e))
 
 # --- User Profile Dialog ---
-class UserProfileDialog(QWidget):
+class UserProfileDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("User Profile & Settings")
         self.setFixedSize(500, 400)
-        self.setWindowModality(Qt.ApplicationModal)
+        self.setModal(True)
+        
+        # Set dialog background and styling
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #1e1e1e;
+                color: white;
+            }
+        """)
         
         layout = QVBoxLayout()
         
@@ -256,17 +265,38 @@ class UserProfileDialog(QWidget):
         """)
         user_layout = QFormLayout()
         
+        # Get saved username
         try:
+            saved_username = secrets_service.get_username()
             token = secrets_service.get_token()
-            if token:
-                username_label = QLabel("Current User")
+            
+            if saved_username and token:
+                username_label = QLabel(saved_username)
                 username_label.setStyleSheet("font-weight: bold; color: #42A5F5;")
+                
+                # Also show login status
+                status_label = QLabel("Logged In")
+                status_label.setStyleSheet("color: #4CAF50; font-weight: bold;")
+            elif saved_username:
+                username_label = QLabel(saved_username)
+                username_label.setStyleSheet("font-weight: bold; color: #999;")
+                
+                status_label = QLabel("Not Logged In")
+                status_label.setStyleSheet("color: #f44336; font-weight: bold;")
             else:
-                username_label = QLabel("Not logged in")
+                username_label = QLabel("No username saved")
+                username_label.setStyleSheet("color: #999;")
+                
+                status_label = QLabel("Not Logged In")
+                status_label.setStyleSheet("color: #f44336; font-weight: bold;")
         except:
             username_label = QLabel("Unknown")
+            username_label.setStyleSheet("color: #999;")
+            status_label = QLabel("Unknown")
+            status_label.setStyleSheet("color: #999;")
             
         user_layout.addRow("Username:", username_label)
+        user_layout.addRow("Status:", status_label)
         user_group.setLayout(user_layout)
         layout.addWidget(user_group)
         
@@ -298,7 +328,7 @@ class UserProfileDialog(QWidget):
         
         # Close button
         close_btn = styled_button("Close", primary=True)
-        close_btn.clicked.connect(self.close)
+        close_btn.clicked.connect(self.accept)  # Use accept() for proper dialog closing
         layout.addWidget(close_btn)
         
         self.setLayout(layout)
@@ -440,6 +470,8 @@ class LoginPage(QWidget):
         self.hide_loading()
         if 'access_token' in result:
             secrets_service.save_token(result['access_token'])
+            # Save the username for display in settings
+            secrets_service.save_username(self.username.text())
             parent = self.parent()
             while parent is not None and not hasattr(parent, 'access_token'):
                 parent = parent.parent()
@@ -600,6 +632,8 @@ class RegisterPage(QWidget):
     def on_register_success(self, result):
         self.hide_loading()
         if result.get('status') == 'success':
+            # Save the username for future reference
+            secrets_service.save_username(self.username.text())
             self._switch_to_login()
         else:
             self.error_label.setText("Registration failed.")
@@ -608,8 +642,8 @@ class RegisterPage(QWidget):
         self.hide_loading()
         self.error_label.setText(f"Registration error: {error_msg}")
 
-# --- Credits Widget ---
-class CreditsWidget(QGroupBox):
+# --- Simple Animated Credits Widget ---
+class AnimatedCreditsWidget(QGroupBox):
     def __init__(self):
         super().__init__("Credits")
         self.setStyleSheet("""
@@ -626,35 +660,92 @@ class CreditsWidget(QGroupBox):
                 padding: 0 5px 0 5px;
             }
         """)
-        layout = QVBoxLayout()
         
+        layout = QVBoxLayout()
+        self.current_credits = 0
+        
+        # Main credits display
         self.credits_label = QLabel("0")
         self.credits_label.setFont(QFont("Segoe UI", 24, QFont.Bold))
         self.credits_label.setAlignment(Qt.AlignCenter)
         self.credits_label.setStyleSheet("color: #4CAF50; margin: 10px;")
+        
+        # Simple increase notification label
+        self.increase_label = QLabel("")
+        self.increase_label.setFont(QFont("Segoe UI", 14, QFont.Bold))
+        self.increase_label.setAlignment(Qt.AlignCenter)
+        self.increase_label.setStyleSheet("""
+            color: #FFD700; 
+            background-color: rgba(76, 175, 80, 40);
+            border-radius: 8px;
+            padding: 4px 12px;
+            margin: 2px;
+        """)
+        self.increase_label.hide()
         
         credits_text = QLabel("Available Credits")
         credits_text.setAlignment(Qt.AlignCenter)
         credits_text.setStyleSheet("color: #999; font-size: 12px;")
         
         layout.addWidget(self.credits_label)
+        layout.addWidget(self.increase_label)
         layout.addWidget(credits_text)
         self.setLayout(layout)
         
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_credits)
-        self.timer.start(30000)  # Update every 30 seconds
+        # Periodic update timer - check every 15 seconds
+        self.update_timer = QTimer()
+        self.update_timer.timeout.connect(self.update_credits_from_server)
+        self.update_timer.start(15000)
     
-    def update_credits(self):
+    def update_credits_from_server(self):
+        """Periodically fetch credits from server"""
         try:
             data = register_service.get_details()
             if 'credits' in data:
-                self.credits_label.setText(str(data['credits']))
-        except:
-            pass
+                new_credits = int(data['credits'])
+                if new_credits > self.current_credits and self.current_credits > 0:
+                    # Credits increased - show simple animation
+                    increase = new_credits - self.current_credits
+                    self.show_credits_increase(increase)
+                self.current_credits = new_credits
+                self.credits_label.setText(str(new_credits))
+        except Exception as e:
+            print(f"Error updating credits: {e}")
+    
+    def show_credits_increase(self, increase):
+        """Show simple notification when credits increase"""
+        # Show the increase message
+        self.increase_label.setText(f"+{increase} Credits Earned! 🎉")
+        self.increase_label.show()
+        
+        # Briefly highlight the main credits label
+        original_style = self.credits_label.styleSheet()
+        self.credits_label.setStyleSheet("color: #FFD700; margin: 10px; font-weight: bold;")
+        
+        # Hide the notification after 3 seconds
+        QTimer.singleShot(3000, self.hide_increase_notification)
+        
+        # Return credits label to normal after 1 second
+        QTimer.singleShot(1000, lambda: self.credits_label.setStyleSheet(original_style))
+    
+    def hide_increase_notification(self):
+        """Hide the increase notification"""
+        self.increase_label.hide()
     
     def set_credits(self, credits):
+        """Manually set credits (used during start/stop operations)"""
+        old_credits = self.current_credits
+        self.current_credits = credits
         self.credits_label.setText(str(credits))
+        
+        # If this is an increase and we had previous credits, show notification
+        if credits > old_credits and old_credits > 0:
+            increase = credits - old_credits
+            self.show_credits_increase(increase)
+
+# --- Legacy Credits Widget (for compatibility) ---
+class CreditsWidget(AnimatedCreditsWidget):
+    pass
 
 # --- Network Info Widget ---
 class NetworkInfoWidget(QGroupBox):
@@ -953,14 +1044,14 @@ class MainDashboard(QMainWindow):
         # File menu
         file_menu = menubar.addMenu('File')
         
-        profile_action = QAction('Profile & Settings', self)
+        profile_action = QAction('Profile and Settings', self)
         profile_action.triggered.connect(self.show_profile)
         file_menu.addAction(profile_action)
         
         file_menu.addSeparator()
         
         logout_action = QAction('Logout', self)
-        logout_action.triggered.connect(self.logout_callback)
+        logout_action.triggered.connect(self.handle_logout)
         file_menu.addAction(logout_action)
         
         exit_action = QAction('Exit', self)
@@ -979,6 +1070,10 @@ class MainDashboard(QMainWindow):
         details_action.triggered.connect(self.show_details)
         tools_menu.addAction(details_action)
         
+        test_animation_action = QAction('Test Credits Animation', self)
+        test_animation_action.triggered.connect(self.test_credits_animation)
+        tools_menu.addAction(test_animation_action)
+        
         # Help menu
         help_menu = menubar.addMenu('Help')
         about_action = QAction('About', self)
@@ -986,16 +1081,14 @@ class MainDashboard(QMainWindow):
         help_menu.addAction(about_action)
     
     def show_about(self):
-        from PyQt5.QtWidgets import QMessageBox
         QMessageBox.about(self, "About Cloudless Provider", 
                          "Cloudless Provider Agent v1.0\n\nShare your computer resources and earn credits!")
     
     def show_profile(self):
         self.profile_dialog = UserProfileDialog(self)
-        self.profile_dialog.show()
+        self.profile_dialog.exec_()  # Use exec_() for modal dialog
     
     def show_details(self):
-        from PyQt5.QtWidgets import QMessageBox
         try:
             data = register_service.get_details()
             details_text = f"Credits: {data.get('credits', 'N/A')}\n"
@@ -1005,12 +1098,33 @@ class MainDashboard(QMainWindow):
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Could not fetch details: {str(e)}")
     
+    def test_credits_animation(self):
+        """Test method to simulate credits increase"""
+        current_credits = self.credits_widget.current_credits
+        test_increase = 5
+        self.credits_widget.set_credits(current_credits + test_increase)
+        QMessageBox.information(self, "Test Animation", f"Simulated +{test_increase} credits increase!")
+    
+    def handle_logout(self):
+        """Handle logout with proper cleanup"""
+        # Stop sharing if active
+        if self.is_running:
+            self.stop_logic()
+        
+        # Clear saved credentials
+        secrets_service.logout()
+        
+        # Call the original logout callback
+        self.logout_callback()
+    
     def load_initial_data(self):
         try:
             data = register_service.get_details()
             if 'credits' in data:
                 self.credits = data['credits']
-                self.credits_widget.set_credits(self.credits)
+                # Initialize credits widget with current amount (no animation for initial load)
+                self.credits_widget.current_credits = self.credits
+                self.credits_widget.credits_label.setText(str(self.credits))
         except:
             pass
     
