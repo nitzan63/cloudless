@@ -155,26 +155,36 @@ class DockerRunnerService:
             target_id = self.container_id
         
         if not target_id:
+            print(f"No container ID found for key: {container_key}")
             return False
         
         try:
             container = self.client.containers.get(target_id)
-            container.stop()
+            print(f"Stopping container {target_id}...")
+            container.stop(timeout=10)  # Add timeout for stop
+            print(f"Removing container {target_id}...")
             container.remove()
             
             # Remove from storage
             if container_key and container_key in self.containers:
                 del self.containers[container_key]
                 self._save_containers()
+                print(f"Removed {container_key} from storage")
+            
+            # Clear the current container_id if it matches
+            if target_id == self.container_id:
+                self.container_id = None
             
             return True
         except docker.errors.NotFound:
             # Container already removed
+            print(f"Container {target_id} not found (already removed)")
             if container_key and container_key in self.containers:
                 del self.containers[container_key]
                 self._save_containers()
             return True
-        except docker.errors.APIError:
+        except docker.errors.APIError as e:
+            print(f"Docker API error stopping container: {e}")
             return False
     
     def cleanup_all(self) -> int:
@@ -238,3 +248,74 @@ class DockerRunnerService:
             return "not_found"
         except docker.errors.APIError:
             return "error"
+    
+    def get_container_info(self, container_key: str) -> dict:
+        """Get detailed info about a saved container including start time."""
+        container_id = self.containers.get(container_key)
+        if not container_id:
+            return {"status": "not_found"}
+        
+        try:
+            container = self.client.containers.get(container_id)
+            container.reload()
+            
+            # Get container attributes
+            attrs = container.attrs
+            
+            info = {
+                "status": container.status,
+                "id": container_id,
+                "name": container.name,
+                "created": attrs.get("Created"),
+                "started_at": attrs.get("State", {}).get("StartedAt"),
+                "finished_at": attrs.get("State", {}).get("FinishedAt"),
+                "running": attrs.get("State", {}).get("Running", False),
+                "image": attrs.get("Config", {}).get("Image")
+            }
+            
+            return info
+            
+        except docker.errors.NotFound:
+            return {"status": "not_found"}
+        except docker.errors.APIError as e:
+            return {"status": "error", "error": str(e)}
+    
+    def get_container_uptime(self, container_key: str) -> str:
+        """Get formatted uptime string for a running container."""
+        info = self.get_container_info(container_key)
+        
+        if info.get("status") != "running":
+            return "Not running"
+        
+        started_at = info.get("started_at")
+        if not started_at:
+            return "Unknown"
+        
+        try:
+            from datetime import datetime
+            import re
+            
+            # Parse Docker's timestamp format (RFC3339)
+            # Example: "2023-12-01T10:30:45.123456789Z"
+            timestamp_clean = re.sub(r'\.\d+Z$', 'Z', started_at)
+            timestamp_clean = timestamp_clean.replace('Z', '+00:00')
+            
+            start_time = datetime.fromisoformat(timestamp_clean)
+            current_time = datetime.now(start_time.tzinfo)
+            
+            uptime_delta = current_time - start_time
+            
+            # Format uptime
+            days = uptime_delta.days
+            hours, remainder = divmod(uptime_delta.seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            
+            if days > 0:
+                return f"{days}d {hours}h {minutes}m"
+            elif hours > 0:
+                return f"{hours}h {minutes}m {seconds}s"
+            else:
+                return f"{minutes}m {seconds}s"
+                
+        except Exception as e:
+            return f"Error: {str(e)}"

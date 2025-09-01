@@ -6,3 +6,4 @@ appdirs
 docker
 pyinstaller
 dotenv
+psutil

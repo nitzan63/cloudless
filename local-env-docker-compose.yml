@@ -231,12 +231,12 @@ services:
       - net.ipv4.ip_forward=1
     ports:
       - "${WG_PORT:-51820}:${WG_PORT:-51820}/udp"
-      - "5001:5000"  # Changed from 5000:5000 to avoid conflict with macOS ControlCenter (AirPlay service)
+      - "5001:5000" # Changed from 5000:5000 to avoid conflict with macOS ControlCenter (AirPlay service)
       - "7077:7077"
       - "7078:7078"
       - "7079:7079"
       - "8080:8080"
-      - "6066:6066"
+      # - "6066:6066"
       - "18080:18080"
       - "8998:8998"
     volumes:
@@ -253,6 +253,20 @@ services:
     tmpfs:
       - /tmp
       - /run
+    networks:
+      - cloudless-net
+
+  web:
+    build:
+      context: ./client-web-ui
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_AUTH_SERVICE_URL=http://auth-service:8003
+      - NEXT_PUBLIC_USER_SERVICE_URL=http://data-service:8002
+      - NEXT_PUBLIC_API_URL=http://cloudless-main-server:8000
+    restart: unless-stopped
     networks:
       - cloudless-net
 
