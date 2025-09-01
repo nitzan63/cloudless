@@ -226,10 +226,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - "80:3000"
-    environment:
-      - NEXT_PUBLIC_AUTH_SERVICE_URL=http://34.173.111.175:8003
-      - NEXT_PUBLIC_USER_SERVICE_URL=http://34.173.111.175:8002
-      - NEXT_PUBLIC_API_URL=http://34.173.111.175:8000
     restart: unless-stopped
     networks:
       - cloudless-net

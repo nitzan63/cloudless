@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  NEXT_PUBLIC_AUTH_SERVICE_URL,
+  NEXT_PUBLIC_USER_SERVICE_URL,
+} from "@/lib/constants";
 import React, {
   createContext,
   useContext,
@@ -73,13 +77,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       formData.append("username", username);
       formData.append("password", password);
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_AUTH_SERVICE_URL}/login`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+      const response = await fetch(`${NEXT_PUBLIC_AUTH_SERVICE_URL}/login`, {
+        method: "POST",
+        body: formData,
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -91,7 +92,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Get user info from data service
       const userResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_USER_SERVICE_URL}/users/${username}`
+        `${NEXT_PUBLIC_USER_SERVICE_URL}/users/${username}`
       );
       if (!userResponse.ok) {
         throw new Error("Failed to fetch user data");
@@ -125,16 +126,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_AUTH_SERVICE_URL}/register`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ username, password, type }),
-        }
-      );
+      const response = await fetch(`${NEXT_PUBLIC_AUTH_SERVICE_URL}/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password, type }),
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
