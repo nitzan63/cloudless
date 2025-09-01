@@ -49,11 +49,12 @@ def rounded_line_edit(password=False):
     le.setStyleSheet("""
         QLineEdit {
             border-radius: 12px;
-            padding: 12px 16px;
+            padding: 14px 16px;
             border: 2px solid #444;
             background: #232323;
             color: #fff;
             font-size: 16px;
+            line-height: 1.2;
             selection-background-color: #42A5F5;
         }
         QLineEdit:focus {
@@ -66,7 +67,7 @@ def rounded_line_edit(password=False):
     """)
     le.setMinimumWidth(280)
     le.setMaximumWidth(420)
-    le.setMinimumHeight(45)
+    le.setMinimumHeight(50)
     if password:
         le.setEchoMode(QLineEdit.Password)
     return le
@@ -1496,5 +1497,14 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     set_dark_mode(app)
     window = MainWindow()
+    
     window.show()
+    
+    # Center the window on screen after showing to ensure proper dimensions
+    screen = app.primaryScreen().availableGeometry()
+    window_geometry = window.frameGeometry()
+    center_point = screen.center()
+    window_geometry.moveCenter(center_point)
+    window.move(window_geometry.topLeft())
+    
     sys.exit(app.exec_())

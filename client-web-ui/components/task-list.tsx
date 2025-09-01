@@ -158,7 +158,7 @@ export default function TaskList({ initialTasks }: TaskListProps) {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Created:</span>
-                    <span>{formatDate(task.creation_time)}</span>
+                    <span>{formatDate(task.createdAt)}</span>
                   </div>
 
                   <div className="flex justify-between">
