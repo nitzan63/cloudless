@@ -29,6 +29,8 @@ services:
       - POSTGRES_DB=mydatabase
       - POSTGRES_PORT=5432
       - POSTGRES_HOST=db
+    ports:
+      - "8002:8002"
     depends_on:
       db:
         condition: service_healthy
@@ -224,10 +226,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - "80:3000"
-    environment:
-      - NEXT_PUBLIC_AUTH_SERVICE_URL=http://auth-service:8003
-      - NEXT_PUBLIC_USER_SERVICE_URL=http://data-service:8002
-      - NEXT_PUBLIC_API_URL=http://cloudless-main-server:8000
     restart: unless-stopped
     networks:
       - cloudless-net
