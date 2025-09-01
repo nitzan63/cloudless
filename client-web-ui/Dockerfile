@@ -1,19 +1,18 @@
 # Use the official Node.js 18 runtime as the base image
 FROM node:18-alpine AS base
 
-# Install dependencies only when needed
-FROM base AS deps
+# Install dependencies and build in single stage to save space
+FROM base AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
+# Copy package files
 COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev --legacy-peer-deps
 
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# Install ALL dependencies first (dev + prod)
+RUN npm ci --legacy-peer-deps
+
+# Copy source code
 COPY . .
 
 # Build the application
