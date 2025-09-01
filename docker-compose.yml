@@ -218,6 +218,20 @@ services:
     networks:
       - cloudless-net
 
+  web:
+    build:
+      context: ./client-web-ui
+      dockerfile: Dockerfile
+    ports:
+      - "80:3000"
+    environment:
+      - NEXT_PUBLIC_AUTH_SERVICE_URL=http://auth-service:8003
+      - NEXT_PUBLIC_USER_SERVICE_URL=http://data-service:8002
+      - NEXT_PUBLIC_API_URL=http://cloudless-main-server:8000
+    restart: unless-stopped
+    networks:
+      - cloudless-net
+
 networks:
   cloudless-net:
     driver: bridge
