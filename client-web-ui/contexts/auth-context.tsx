@@ -4,6 +4,7 @@ import {
   NEXT_PUBLIC_AUTH_SERVICE_URL,
   NEXT_PUBLIC_USER_SERVICE_URL,
 } from "@/lib/constants";
+import { apiClient } from "@/lib/api-client";
 import React, {
   createContext,
   useContext,
@@ -110,6 +111,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(user);
       localStorage.setItem("token", access_token);
       localStorage.setItem("user", JSON.stringify(user));
+      
+      // Set current user in API client
+      apiClient.setCurrentUser(user.username);
     } catch (error) {
       console.error("Login error:", error);
       throw error;
@@ -154,6 +158,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setToken(null);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    
+    // Clear current user in API client
+    apiClient.setCurrentUser("");
   };
 
   const value: AuthContextType = {
