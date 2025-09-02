@@ -83,7 +83,12 @@ export default function TaskList({ initialTasks }: TaskListProps) {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString()
+    if (!dateString) return "N/A"
+    try {
+      return new Date(dateString).toLocaleString()
+    } catch (error) {
+      return "Invalid Date"
+    }
   }
 
   const getStatusBadge = (status: string) => {
@@ -92,6 +97,12 @@ export default function TaskList({ initialTasks }: TaskListProps) {
         return (
           <Badge variant="outline" className="flex items-center gap-1">
             <Clock className="h-3 w-3" /> Pending
+          </Badge>
+        )
+      case "submitted":
+        return (
+          <Badge variant="outline" className="flex items-center gap-1">
+            <Clock className="h-3 w-3" /> Submitted
           </Badge>
         )
       case "running":
@@ -144,9 +155,9 @@ export default function TaskList({ initialTasks }: TaskListProps) {
             <Card key={task.id} className="overflow-hidden">
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
-                  <CardTitle className="truncate" title={task.name}>
-                    {task.name}
-                  </CardTitle>
+                                  <CardTitle className="truncate" title={task.main_file_name || task.name || "Unnamed Task"}>
+                  {task.main_file_name || task.name || "Unnamed Task"}
+                </CardTitle>
                   {getStatusBadge(task.status)}
                 </div>
                 <CardDescription className="line-clamp-2">
@@ -158,7 +169,7 @@ export default function TaskList({ initialTasks }: TaskListProps) {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Created:</span>
-                    <span>{formatDate(task.createdAt)}</span>
+                    <span>{formatDate(task.creation_time || task.createdAt || "")}</span>
                   </div>
 
                   <div className="flex justify-between">
