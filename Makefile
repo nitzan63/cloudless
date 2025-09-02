@@ -3,6 +3,9 @@ PYTHON = venv/Scripts/python
 cloudless:
 	docker compose up -d
 
+cloudless-build:
+	docker compose up -d --build
+
 stop-cloudless:
 	docker compose down
 
