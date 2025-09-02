@@ -7,7 +7,13 @@ app = FastAPI(title="Data Service")
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://34.173.111.175",
+        "http://34.173.111.175:3000",
+        "http://34.173.111.175:8000",
+        "http://34.173.111.175:8003",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
