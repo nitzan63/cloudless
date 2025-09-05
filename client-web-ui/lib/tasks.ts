@@ -8,13 +8,13 @@ export interface TaskSpecs {
 
 export interface Task {
   id: string
-  name: string
-  description: string
-  code: string
-  datasetRef: string
-  specs: TaskSpecs
+  name?: string
+  description?: string
+  code?: string
+  datasetRef?: string
+  specs?: TaskSpecs
   status: "pending" | "running" | "completed" | "failed" | "submitted"
-  createdAt: string
+  createdAt?: string
   completedAt?: string
   creation_time?: string
   created_by?: string

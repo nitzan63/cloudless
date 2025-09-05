@@ -105,6 +105,41 @@ def get_all_tasks():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+@app.route('/api/tasks/<task_id>/logs', methods=['GET'])
+def get_task_logs(task_id):
+    """Get logs for a specific task"""
+    try:
+        task = task_service.get_task(task_id)
+        if not task:
+            return jsonify({"error": "Task not found"}), 404
+        
+        # If logs are stored in the database, return them
+        if task.get('logs'):
+            try:
+                import json
+                return jsonify({"logs": json.loads(task['logs'])})
+            except (json.JSONDecodeError, TypeError):
+                return jsonify({"logs": task['logs']})
+        
+        # If no logs in database, try to fetch from Livy if batch_job_id exists
+        if task.get('batch_job_id'):
+            try:
+                from services.livy_service import LivyService
+                livy_service = LivyService("http://wireguard:8998")  # Livy shares network with wireguard
+                logs_response = livy_service.get_batch_logs(task['batch_job_id'], verbose=False)
+                if logs_response.status_code == 200:
+                    logs_data = logs_response.json()
+                    # Store logs in database for future use
+                    task_service.update_task(task_id, {"logs": json.dumps(logs_data)})
+                    return jsonify({"logs": logs_data})
+            except Exception as e:
+                logger.error(f"Error fetching logs from Livy: {e}")
+        
+        return jsonify({"logs": None, "message": "No logs available"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8000))
     logger.info(f"Starting server on port {port}")
