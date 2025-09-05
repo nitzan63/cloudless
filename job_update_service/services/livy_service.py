@@ -44,7 +44,9 @@ class LivyService(BaseService):
 
     def get_batch_logs(self, batch_id, verbose=False):
         """Get the logs of a batch job."""
-        resp = requests.get(f"{self.base_url}/batches/{batch_id}/log")
+        resp = requests.get(f"{self.base_url}/batches/{batch_id}/log?from=0&size=1")
+        total = resp.json()['total']
+        resp = requests.get(f"{self.base_url}/batches/{batch_id}/log?from=0&size={total}")
         log = resp.json()['log']
         if verbose:
             print(f"=== Logs of Batch {batch_id} ===")
