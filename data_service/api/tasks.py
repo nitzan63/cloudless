@@ -45,3 +45,4 @@ def list_tasks():
 @router.get("/not-finished/all")
 def get_tasks_not_finished():
     return task_service.get_tasks_not_finished()
+

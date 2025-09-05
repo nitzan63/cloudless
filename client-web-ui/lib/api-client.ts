@@ -11,9 +11,14 @@ export type UploadResult = {
 
 class ApiClient {
   private baseUrl: string;
+  private currentUser: string | null = null;
 
   constructor() {
     this.baseUrl = NEXT_PUBLIC_API_URL;
+  }
+
+  setCurrentUser(username: string) {
+    this.currentUser = username;
   }
 
   private async handleResponse<T>(response: Response): Promise<T> {
@@ -31,7 +36,7 @@ class ApiClient {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("created_by", "admin"); // Default value
+    formData.append("created_by", this.currentUser || "unknown"); // Use current user
     formData.append("requested_workers_amount", "1"); // Default value
     formData.append("status", "submitted"); // Default value
     formData.append("name", taskName); // Add task name
@@ -77,7 +82,7 @@ class ApiClient {
     formData.append("file", file);
 
     // Add required fields
-    formData.append("created_by", "admin");
+    formData.append("created_by", this.currentUser || "unknown");
     formData.append("requested_workers_amount", "1");
     formData.append("status", "submitted");
 
@@ -116,6 +121,13 @@ class ApiClient {
       }
     );
     return this.handleResponse<void>(response);
+  }
+
+  async getTaskLogs(taskId: string): Promise<any> {
+    const response = await fetch(
+      `${this.baseUrl}${API_CONFIG.endpoints.tasks}/${taskId}/logs`
+    );
+    return this.handleResponse<any>(response);
   }
 }
 
