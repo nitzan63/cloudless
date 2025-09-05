@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Play, Trash2, Eye, Clock, CheckCircle, XCircle, Loader2, AlertCircle, Plus } from "lucide-react"
+import { Eye, Clock, CheckCircle, XCircle, Loader2, AlertCircle, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -26,63 +26,10 @@ interface TaskListProps {
 export default function TaskList({ initialTasks }: TaskListProps) {
   const router = useRouter()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
-  const [runningTaskIds, setRunningTaskIds] = useState<Set<string>>(new Set())
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [taskLogs, setTaskLogs] = useState<any>(null)
   const [loadingLogs, setLoadingLogs] = useState(false)
 
-  const handleRunTask = async (taskId: string) => {
-    try {
-      setRunningTaskIds((prev) => new Set(prev).add(taskId))
-
-      await apiClient.runTask(taskId)
-
-      // Refresh the tasks list
-      const updatedTasks = await apiClient.getTasks()
-      setTasks(updatedTasks)
-
-      toast({
-        title: "Success",
-        description: "Task executed successfully",
-      })
-    } catch (error) {
-      console.error("Error running task:", error)
-
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to execute task",
-        variant: "destructive",
-      })
-    } finally {
-      setRunningTaskIds((prev) => {
-        const updated = new Set(prev)
-        updated.delete(taskId)
-        return updated
-      })
-    }
-  }
-
-  const handleDeleteTask = async (taskId: string) => {
-    try {
-      await apiClient.deleteTask(taskId)
-
-      // Remove the task from the UI
-      setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId))
-
-      toast({
-        title: "Success",
-        description: "Task deleted successfully",
-      })
-    } catch (error) {
-      console.error("Error deleting task:", error)
-
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete task",
-        variant: "destructive",
-      })
-    }
-  }
 
   const handleRefreshTasks = async () => {
     try {
@@ -282,30 +229,6 @@ export default function TaskList({ initialTasks }: TaskListProps) {
                   </DialogContent>
                 </Dialog>
 
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleRunTask(task.id)}
-                    disabled={runningTaskIds.has(task.id) || task.status === "running"}
-                  >
-                    {runningTaskIds.has(task.id) ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                    ) : (
-                      <Play className="h-4 w-4 mr-1" />
-                    )}
-                    Run
-                  </Button>
-
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteTask(task.id)}
-                    disabled={runningTaskIds.has(task.id) || task.status === "running"}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
               </CardFooter>
             </Card>
           ))}
