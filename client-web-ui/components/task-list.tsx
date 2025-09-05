@@ -28,6 +28,8 @@ export default function TaskList({ initialTasks }: TaskListProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [runningTaskIds, setRunningTaskIds] = useState<Set<string>>(new Set())
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [taskLogs, setTaskLogs] = useState<any>(null)
+  const [loadingLogs, setLoadingLogs] = useState(false)
 
   const handleRunTask = async (taskId: string) => {
     try {
@@ -79,6 +81,43 @@ export default function TaskList({ initialTasks }: TaskListProps) {
         description: error instanceof Error ? error.message : "Failed to delete task",
         variant: "destructive",
       })
+    }
+  }
+
+  const handleRefreshTasks = async () => {
+    try {
+      const updatedTasks = await apiClient.getTasks()
+      setTasks(updatedTasks)
+      toast({
+        title: "Success",
+        description: "Tasks refreshed successfully",
+      })
+    } catch (error) {
+      console.error("Error refreshing tasks:", error)
+      toast({
+        title: "Error",
+        description: "Failed to refresh tasks",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleViewLogs = async (task: Task) => {
+    try {
+      setLoadingLogs(true)
+      setSelectedTask(task)
+      const logsData = await apiClient.getTaskLogs(task.id)
+      setTaskLogs(logsData)
+    } catch (error) {
+      console.error("Error fetching logs:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch task logs",
+        variant: "destructive",
+      })
+      setTaskLogs(null)
+    } finally {
+      setLoadingLogs(false)
     }
   }
 
@@ -134,6 +173,18 @@ export default function TaskList({ initialTasks }: TaskListProps) {
 
   return (
     <div className="space-y-6">
+      {/* Header with refresh button */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">Tasks Dashboard</h2>
+          <p className="text-muted-foreground">View and manage your Python data processing tasks</p>
+        </div>
+        <Button onClick={handleRefreshTasks} variant="outline">
+          <Loader2 className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
+      </div>
+
       {tasks.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-10">
@@ -192,35 +243,41 @@ export default function TaskList({ initialTasks }: TaskListProps) {
               </CardContent>
 
               <CardFooter className="flex justify-between pt-3">
-                {/* Temporarily disabled buttons
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={() => setSelectedTask(task)}>
+                    <Button variant="outline" size="sm" onClick={() => handleViewLogs(task)}>
                       <Eye className="h-4 w-4 mr-1" />
-                      View
+                      View Logs
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>{selectedTask?.main_file_name}</DialogTitle>
-                      <DialogDescription>Created by {selectedTask?.created_by}</DialogDescription>
+                      <DialogTitle>Logs for {selectedTask?.main_file_name}</DialogTitle>
+                      <DialogDescription>Task ID: {selectedTask?.id}</DialogDescription>
                     </DialogHeader>
                     <div className="mt-4 space-y-4">
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Task Details</h4>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div className="text-muted-foreground">Status:</div>
-                          <div>{selectedTask && getStatusBadge(selectedTask.status)}</div>
-                          <div className="text-muted-foreground">Created:</div>
-                          <div>{selectedTask && formatDate(selectedTask.creation_time)}</div>
-                          <div className="text-muted-foreground">Workers:</div>
-                          <div>{selectedTask?.requested_workers_amount}</div>
-                          <div className="text-muted-foreground">Script Path:</div>
-                          <div className="truncate" title={selectedTask?.script_path}>
-                            {selectedTask?.script_path}
+                      {loadingLogs ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                          <span>Loading logs...</span>
+                        </div>
+                      ) : taskLogs?.logs ? (
+                        <div className="space-y-2">
+                          <h4 className="font-medium">Execution Logs</h4>
+                          <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm max-h-96 overflow-y-auto">
+                            <pre className="whitespace-pre-wrap">
+                              {JSON.stringify(taskLogs.logs, null, 2)}
+                            </pre>
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground">No logs available for this task</p>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            {taskLogs?.message || "Logs may not be available yet or the task hasn't been executed."}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </DialogContent>
                 </Dialog>
@@ -249,7 +306,6 @@ export default function TaskList({ initialTasks }: TaskListProps) {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-                */}
               </CardFooter>
             </Card>
           ))}

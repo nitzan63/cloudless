@@ -122,6 +122,13 @@ class ApiClient {
     );
     return this.handleResponse<void>(response);
   }
+
+  async getTaskLogs(taskId: string): Promise<any> {
+    const response = await fetch(
+      `${this.baseUrl}${API_CONFIG.endpoints.tasks}/${taskId}/logs`
+    );
+    return this.handleResponse<any>(response);
+  }
 }
 
 export const apiClient = new ApiClient();
