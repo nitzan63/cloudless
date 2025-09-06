@@ -17,10 +17,11 @@ class CreditService:
 
             # Deduct credits
             new_balance = current_balance['credits'] - amount
+            actual_user_id = current_balance['userId']  # Get the actual user ID from the balance query
             
             # Update user credits
             self.db.execute(
-                "UPDATE users SET credits = %s, updated_at = %s WHERE id = %s",
+                "UPDATE users SET credits = %s, updated_at = %s WHERE username = %s",
                 (new_balance, datetime.utcnow(), user_id)
             )
             
@@ -31,7 +32,7 @@ class CreditService:
                 INSERT INTO credit_transactions (id, user_id, amount, type, description, task_id, timestamp)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """,
-                (transaction_id, user_id, -amount, 'spend', description, task_id, datetime.utcnow())
+                (transaction_id, actual_user_id, -amount, 'spend', description, task_id, datetime.utcnow())
             )
 
             return {
@@ -49,10 +50,11 @@ class CreditService:
             # Get current balance
             current_balance = self.get_credit_balance(user_id)
             new_balance = current_balance['credits'] + amount
+            actual_user_id = current_balance['userId']  # Get the actual user ID from the balance query
             
             # Update user credits
             self.db.execute(
-                "UPDATE users SET credits = %s, updated_at = %s WHERE id = %s",
+                "UPDATE users SET credits = %s, updated_at = %s WHERE username = %s",
                 (new_balance, datetime.utcnow(), user_id)
             )
             
@@ -63,7 +65,7 @@ class CreditService:
                 INSERT INTO credit_transactions (id, user_id, amount, type, description, job_id, timestamp)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """,
-                (transaction_id, user_id, amount, 'earn', description, job_id, datetime.utcnow())
+                (transaction_id, actual_user_id, amount, 'earn', description, job_id, datetime.utcnow())
             )
 
             return {
@@ -79,7 +81,7 @@ class CreditService:
         """Get user's current credit balance"""
         try:
             result = self.db.execute(
-                "SELECT id, credits, updated_at FROM users WHERE id = %s",
+                "SELECT id, credits, updated_at FROM users WHERE username = %s",
                 (user_id,)
             )
             
@@ -99,6 +101,17 @@ class CreditService:
     def get_transaction_history(self, user_id: str) -> List[dict]:
         """Get user's credit transaction history"""
         try:
+            # First get the actual user ID from username
+            user_result = self.db.execute(
+                "SELECT id FROM users WHERE username = %s",
+                (user_id,)
+            )
+            
+            if not user_result or not user_result[0]:
+                raise Exception("User not found")
+            
+            actual_user_id = user_result[0][0]
+            
             results = self.db.execute(
                 """
                 SELECT id, user_id, amount, type, description, task_id, job_id, timestamp
@@ -106,7 +119,7 @@ class CreditService:
                 WHERE user_id = %s 
                 ORDER BY timestamp DESC
                 """,
-                (user_id,)
+                (actual_user_id,)
             )
             
             if not results:
