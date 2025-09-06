@@ -61,8 +61,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     if (savedToken && savedUser) {
       try {
+        const userData = JSON.parse(savedUser);
         setToken(savedToken);
-        setUser(JSON.parse(savedUser));
+        setUser(userData);
+        // Set current user in API client when restoring from localStorage
+        apiClient.setCurrentUser(userData.username);
       } catch (error) {
         console.error("Error parsing saved user data:", error);
         localStorage.removeItem("token");

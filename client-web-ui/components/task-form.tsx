@@ -141,9 +141,7 @@ export default function TaskForm() {
       const fileContent = await selectedFile.text()
       
       // Set current user in API client
-      if (user) {
-        apiClient.setCurrentUser(user.username)
-      }
+      // User should already be set by auth context
       
       // First create the task
       const task = await apiClient.createTask({

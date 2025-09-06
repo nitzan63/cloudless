@@ -53,8 +53,15 @@ def get_metadata(app_id):
     if result == None:
         print(f"Can't get metadata of {app_id}")
         return {}
+    
+    duration = result['duration']
+    executors = get_executors(app_id)
+    cost = calculate_task_cost(duration, len(executors))
+    
     return {
-        "duration": result['duration']
+        "duration": duration,
+        "cost": cost,
+        "executors": executors
     }
 
 def get_executors(app_id):
