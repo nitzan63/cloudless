@@ -131,7 +131,7 @@ export default function TaskForm() {
     if ((user.credits || 0) < 1) {
       toast({
         title: "Insufficient Credits",
-        description: "You need at least 1 credit to submit a task. Current balance: " + user.credits + " credits",
+        description: "You need at least 1 credit to submit a task. Current balance: " + (user.credits || 0) + " credits",
         variant: "destructive",
       })
       return

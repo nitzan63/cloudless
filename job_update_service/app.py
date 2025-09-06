@@ -106,6 +106,11 @@ def charge_user_for_task(task_id, duration_ms, executor_count):
         user_id = task_details['created_by']
         task_cost = calculate_task_cost(duration_ms, executor_count)
         
+        # Validate task cost
+        if task_cost <= 0:
+            logging.error(f"Invalid task cost calculated: {task_cost} for task {task_id}")
+            return False
+        
         # Charge the user
         credit_service_url = os.environ.get('DATA_SERVICE_URL', 'http://localhost:8002')
         response = requests.post(f"{credit_service_url}/credits/spend", json={
