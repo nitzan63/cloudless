@@ -153,32 +153,11 @@ export default function TaskForm() {
         },
       })
 
-      // Now spend 1 credit for the task
-      if (user) {
-        try {
-          await CreditService.spendCredits(user.id, 1, task.id)
-          
-          // Refresh credits from the server
-          await refreshCredits()
-          
-          toast({
-            title: "Task Submitted Successfully!",
-            description: `Task "${taskName}" has been submitted. 1 credit spent.`,
-          })
-        } catch (creditError) {
-          console.error('Failed to spend credits:', creditError)
-          toast({
-            title: "Warning",
-            description: "Task submitted but failed to deduct credits. Please contact support.",
-            variant: "destructive",
-          })
-        }
-      } else {
-        toast({
-          title: "Success",
-          description: "Task created successfully!",
-        })
-      }
+      // Task submitted - credits will be charged after completion based on actual usage
+      toast({
+        title: "Task Submitted Successfully!",
+        description: `Task "${taskName}" has been submitted. Credits will be charged after completion based on actual resource usage.`,
+      })
       
       router.push("/tasks")
       router.refresh()

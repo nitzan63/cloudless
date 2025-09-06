@@ -79,6 +79,10 @@ def get_executors(app_id):
         return []
 
 
+def calculate_task_cost(duration_ms, executor_count):
+    """Calculate task cost based on duration - same as provider credits"""
+    return max(1, math.ceil(duration_ms / 1000) // executor_count)
+
 def give_credits_to_providers(executors, duration):
     try:
         ips = [exec.split("-")[-2] for exec in executors]
@@ -88,6 +92,38 @@ def give_credits_to_providers(executors, duration):
         return True
     except Exception as e:
         logging.error(f"Failed to add credits: {str(e)}")
+        return False
+
+def charge_user_for_task(task_id, duration_ms, executor_count):
+    """Charge user for completed task based on actual usage"""
+    try:
+        # Get task details to find creator
+        task_details = task_service.get_task(task_id)
+        if not task_details or 'created_by' not in task_details:
+            logging.error(f"Could not get task details for {task_id}")
+            return False
+        
+        user_id = task_details['created_by']
+        task_cost = calculate_task_cost(duration_ms, executor_count)
+        
+        # Charge the user
+        credit_service_url = os.environ.get('DATA_SERVICE_URL', 'http://localhost:8002')
+        response = requests.post(f"{credit_service_url}/credits/spend", json={
+            "userId": user_id,
+            "amount": task_cost,
+            "taskId": task_id,
+            "description": f"Task execution cost: {task_cost} credits (duration: {duration_ms}ms, executors: {executor_count})"
+        })
+        
+        if response.status_code == 200:
+            logging.info(f"Charged user {user_id} {task_cost} credits for task {task_id}")
+            return True
+        else:
+            logging.error(f"Failed to charge user {user_id}: {response.text}")
+            return False
+            
+    except Exception as e:
+        logging.error(f"Failed to charge user for task {task_id}: {str(e)}")
         return False
 
 def update_task_status(task_id, new_status, logs, app_id, executors, given_credits, metadata):
@@ -124,8 +160,17 @@ def job():
             metadata = get_metadata(app_id)
             if 'duration' not in metadata:
                 given_credits = False
+                charged_user = False
             else:
+                # Give credits to providers
                 given_credits = give_credits_to_providers(executors, metadata['duration'])
+                
+                # Charge user for completed tasks only
+                if db_status == 'completed' and given_credits:
+                    charged_user = charge_user_for_task(task_id, metadata['duration'], len(executors))
+                else:
+                    charged_user = False
+                    
             update_task_status(task_id, db_status, logs, app_id, executors, given_credits, metadata)
 
 if __name__ == '__main__':
