@@ -106,7 +106,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         id: userData.id,
         username: userData.username,
         type: userData.type,
-        credits: userData.credits || 5, // Default to 5 credits for new users, fallback for existing
+        credits: userData.credits || 100, // Default to 100 credits for new users, fallback for existing
       };
 
       // Save to state and localStorage
@@ -173,7 +173,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await fetch(`${NEXT_PUBLIC_USER_SERVICE_URL}/users/${user.username}`);
       if (response.ok) {
         const userData = await response.json();
-        const updatedUser = { ...user, credits: userData.credits || user.credits || 5 };
+        const updatedUser = { ...user, credits: userData.credits || user.credits || 100 };
         setUser(updatedUser);
         localStorage.setItem('user', JSON.stringify(updatedUser));
       }

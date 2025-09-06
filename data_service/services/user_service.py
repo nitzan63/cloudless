@@ -15,7 +15,7 @@ class UserService:
             username VARCHAR(255) UNIQUE NOT NULL,
             password_hash VARCHAR(255) NOT NULL,
             type VARCHAR(20) NOT NULL CHECK (type IN ('provider', 'submitter')),
-            credits INTEGER DEFAULT 5,
+            credits INTEGER DEFAULT 100,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
