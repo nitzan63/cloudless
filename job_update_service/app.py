@@ -1,5 +1,6 @@
 import os
 import logging
+import math
 import requests
 import re
 from apscheduler.schedulers.blocking import BlockingScheduler
@@ -81,7 +82,8 @@ def get_executors(app_id):
 def give_credits_to_providers(executors, duration):
     try:
         ips = [exec.split("-")[-2] for exec in executors]
-        credits_per_provider = duration / len(executors)
+        # Normalize: duration in ms -> seconds, round up, ensure minimum 1 credit per worker
+        credits_per_provider = max(1, math.ceil(duration / 1000) // len(executors))
         provider_service.add_credits(ips, credits_per_provider)
         return True
     except Exception as e:
