@@ -30,7 +30,14 @@ export default function TasksClient() {
       }
     }
 
+    // Initial fetch
     fetchTasks()
+
+    // Set up polling every 5 seconds
+    const interval = setInterval(fetchTasks, 5000)
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval)
   }, [])
 
   if (isLoading) {
