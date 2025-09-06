@@ -60,7 +60,7 @@ build-spark-worker:
 	docker build -f sparkWorker.Dockerfile -t spark-worker-vpn .
 
 run-spark-worker:
-	docker run -p 8881:8881 -e SPARK_MASTER_IP="34.173.111.175" -v ./provider/spark:/etc/wireguard -it --rm --cap-add=NET_ADMIN --device /dev/net/tun spark-worker-vpn
+	docker run -p 8881:8881 -e SPARK_MASTER_IP="35.225.29.68" -v ./provider/spark:/etc/wireguard -it --rm --cap-add=NET_ADMIN --device /dev/net/tun spark-worker-vpn
 
 run-spark-master:
 	docker run -d --name spark-master -p 7077:7077 -p 7079:7079 -p 7078:7078 -p 8080:8080 -e PYSPARK_PYTHON=python -e SPARK_MODE=master -e SPARK_MASTER_URL=spark://34.134.59.39:7077  bitnami/spark:latest
