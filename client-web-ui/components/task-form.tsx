@@ -128,7 +128,7 @@ export default function TaskForm() {
       return
     }
 
-    if (user.credits < 1) {
+    if ((user.credits || 0) < 1) {
       toast({
         title: "Insufficient Credits",
         description: "You need at least 1 credit to submit a task. Current balance: " + user.credits + " credits",
@@ -300,7 +300,7 @@ export default function TaskForm() {
                   <span className="text-sm font-medium text-foreground">Task Cost:</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm text-muted-foreground">1 credit</span>
+                  <span className="text-sm text-muted-foreground">Charged after completion based on usage</span>
                   <span className="text-xs text-muted-foreground">(Current: {user?.credits || 0})</span>
                 </div>
               </div>
