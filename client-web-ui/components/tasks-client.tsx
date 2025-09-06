@@ -37,22 +37,5 @@ export default function TasksClient() {
     return <div className="py-10 text-center">Loading tasks...</div>
   }
 
-  return (
-    <div className="flex flex-col space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tasks Dashboard</h1>
-          <p className="text-muted-foreground">View and manage your Python data processing tasks</p>
-        </div>
-        <Link href="/">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            New Task
-          </Button>
-        </Link>
-      </div>
-
-      <TaskList initialTasks={tasks} />
-    </div>
-  )
+  return <TaskList initialTasks={tasks} />
 }
