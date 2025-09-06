@@ -20,6 +20,8 @@ COPY livy.conf /opt/livy/conf/livy.conf
 RUN mkdir -p /opt/livy/logs /shared/spark-events && \
     chmod -R 777 /opt/livy/logs /shared/spark-events
 
+RUN pip install numpy
+
 ENV PATH $LIVY_HOME/bin:$PATH
 
 WORKDIR $LIVY_HOME

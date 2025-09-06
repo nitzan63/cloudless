@@ -29,9 +29,27 @@ services:
       - POSTGRES_DB=mydatabase
       - POSTGRES_PORT=5432
       - POSTGRES_HOST=db
+    ports:
+      - "8002:8002"
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - cloudless-net
+
+  auth-service:
+    image: auth-service:latest
+    container_name: auth-service
+    build:
+      context: ./auth_service
+      dockerfile: Dockerfile
+    environment:
+      - PORT=8003
+      - DATA_SERVICE_URL=http://data-service:8002
+    ports:
+      - "8003:8003"
+    depends_on:
+      - data-service
     networks:
       - cloudless-net
 
@@ -73,7 +91,7 @@ services:
       dockerfile: Dockerfile
     environment:
       - DATA_SERVICE_URL=http://data-service:8002
-      - LIVY_URL=http://livy:8998
+      - LIVY_URL=http://wireguard:8998
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=user
@@ -81,7 +99,7 @@ services:
       - SHARED_SCRIPTS_PATH=/app/scripts/
     depends_on:
       - data-service
-      - livy
+      - wireguard
       - rabbitmq
     networks:
       - cloudless-net
@@ -91,51 +109,126 @@ services:
   job-update-service:
     image: job-update-service:latest
     container_name: job-update-service
+    network_mode: "service:wireguard"
     build:
       context: ./job_update_service
       dockerfile: Dockerfile
     environment:
       - DATA_SERVICE_URL=http://data-service:8002
-      - LIVY_URL=http://livy:8998
+      - LIVY_URL=http://wireguard:8998
+      - SPARK_UI_URL=http://10.10.0.1:8080
       - INTERVAL_SECONDS=30
     depends_on:
       - data-service
-      - livy
+      - wireguard
+
+  register-service:
+    image: register-service:latest
+    container_name: register-service
+    build:
+      context: ./register_server
+      dockerfile: Dockerfile
+    environment:
+      - DATA_SERVICE_URL=http://data-service:8002
+      - PORT=8001
+      - WIREGUARD_SERVICE_URL=http://wireguard:5000
+      - AUTH_SERVICE_URL=http://auth-service:8003
+      - SERVER_NETWORK_IP=10.10.0.0
+      - VPN_SERVER_PORT=51820
+    depends_on:
+      - data-service
+      - auth-service
+      - wireguard
+    ports:
+      - "8001:8001"
     networks:
       - cloudless-net
 
   spark-master:
-    image: bitnami/spark:latest
+    image: bitnami/spark:4.0.0
     container_name: spark-master
     network_mode: "service:wireguard"
     environment:
       - SPARK_MODE=master
       - PYSPARK_PYTHON=python
-      - SPARK_MASTER_URL=spark://34.134.59.39:7077
-    ports:
-      - "7077:7077"
-      - "7078:7078"
-      - "7079:7079"
-      - "8080:8080"
-      - "6066:6066"
-    networks:
-      - cloudless-net
+      - SPARK_MASTER_HOST=0.0.0.0
+      - SPARK_MASTER_PORT=7077
+      - SPARK_MASTER_WEBUI_PORT=8080
+      - SPARK_LOCAL_IP=10.10.0.1
+      - SPARK_PUBLIC_DNS=10.10.0.1
+      - SPARK_MASTER_URL=spark://10.10.0.1:7077
+      - SPARK_MASTER_OPTS=-Dspark.master.rest.enabled=true -Dspark.master.rest.port=6066
+      - SPARK_EVENTLOG_ENABLED=true
+      - SPARK_EVENTLOG_DIR=/shared/spark-events
+    depends_on:
+      - wireguard
+    volumes:
+      - spark-events:/shared/spark-events
+
   livy:
     image: livy:latest
     build:
-      context: ./spark/livy
+      context: ./provider/spark/livy
       dockerfile: livy.Dockerfile
     container_name: livy
+    network_mode: "service:wireguard"
     environment:
       - SPARK_HOME=/opt/bitnami/spark
-      - LIVY_SPARK_MASTER=spark://spark-master:7077
+      - LIVY_SPARK_MASTER=spark://10.10.0.1:7077
+      - PYSPARK_PYTHON=python3
+      - PYSPARK_DRIVER_PYTHON=python3
+      - SPARK_LOCAL_HOSTNAME=10.10.0.1
+      - SPARK_LOCAL_IP=10.10.0.1
+      - SPARK_PUBLIC_DNS=10.10.0.1
     depends_on:
       - spark-master
-      - spark-worker
-    networks:
-      - cloudless-net
     volumes:
       - shared-data:/app/scripts
+      - spark-events:/shared/spark-events
+
+  wireguard:
+    build:
+      context: ./wireguard
+      dockerfile: Dockerfile
+    container_name: wireguard
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    privileged: true
+    sysctls:
+      - net.ipv4.ip_forward=1
+    ports:
+      - "${WG_PORT:-51820}:${WG_PORT:-51820}/udp"
+      - "7077:7077"
+      - "7078:7078"
+      - "7079:7079"
+    volumes:
+      - ./config:/etc/wireguard:rw
+      - ./peers:/etc/wireguard/peers:ro
+    environment:
+      WG_INTERFACE: ${WG_INTERFACE:-wg0}
+      WG_PORT: ${WG_PORT:-51820}
+      WG_SERVER_IP: ${WG_SERVER_IP:-10.10.0.1/24}
+      WG_SUBNET: ${WG_SUBNET:-10.10.0.0/24}
+      WG_ENABLE_NAT: ${WG_ENABLE_NAT:-true}
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+      - /run
+    networks:
+      - cloudless-net
+
+  web:
+    build:
+      context: ./client-web-ui
+      dockerfile: Dockerfile
+    ports:
+      - "80:3000"
+    restart: unless-stopped
+    networks:
+      - cloudless-net
 
 networks:
   cloudless-net:
@@ -144,3 +237,4 @@ networks:
 volumes:
   postgres_data:
   shared-data:
+  spark-events:

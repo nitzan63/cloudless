@@ -4,13 +4,13 @@ from api import tasks, providers, storage, users, credits
 
 app = FastAPI(title="Data Service")
 
-# Add CORS middleware
+# Add CORS middleware - simple and clean
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Your React UI
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=False,  # No credentials needed
+    allow_methods=["GET", "POST", "PUT", "DELETE"],  # Explicit methods
+    allow_headers=["*"],  # Allow all headers
 )
 
 app.include_router(tasks.router, prefix="/tasks")

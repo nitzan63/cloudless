@@ -51,7 +51,8 @@ def register():
                 return jsonify({
                     "server_ip": wireguard_service.get_server_ip(),
                     "status": "EXISTING_USER_REGISTERED",
-                    "network_ip": provider["network_ip"]
+                    "network_ip": provider["network_ip"],
+                    "credits": provider["credits"]
                 }), 200
         except Exception:
             pass
@@ -78,15 +79,23 @@ def register():
     })
 
 
-@app.route("/trigger", methods=["GET"])
-def trigger():
+@app.route("/details", methods=["GET"])
+def details():
     try:
-        wireguard_service.fetch_providers_and_generate_conf()
-        wireguard_service.start_wg_server()
+        user_id = g.user_id
+        provider = provider_service.get_provider(user_id)
+        if not provider:
+            return jsonify({"error": "No provider for user", "status": "NO_PROVIDER_YET"}), 400
+    
+        return jsonify({
+            "status": "SUCCESS",
+            "credits": provider["credits"],
+            "last_connection": provider["last_connection_time"],
+            "network_ip": provider["network_ip"]
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-    return jsonify({"status": "success"})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8001))

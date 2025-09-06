@@ -1,11 +1,10 @@
-import os
 import requests
 import json
-from dotenv import load_dotenv
-from services.base_service import BaseService
-load_dotenv()
 
-class LivyService(BaseService):
+class LivyService:
+    def __init__(self, base_url):
+        self.base_url = base_url
+
     def _pretty_print(self, resp):
         """Nicely print JSON response."""
         print(json.dumps(resp.json(), indent=2))
@@ -26,7 +25,7 @@ class LivyService(BaseService):
         """
         data = {
             "file": file_path,
-            "name": name
+            "name": name,
         }
         resp = requests.post(f"{self.base_url}/batches", json=data)
         if verbose:
@@ -34,7 +33,7 @@ class LivyService(BaseService):
             self._pretty_print(resp)
         return resp.json().get("id")
 
-    def get_batch_status(self, batch_id, verbose=False):
+    def get_batch_status(self, batch_id, verbose=True):
         """Get the status of a batch job."""
         resp = requests.get(f"{self.base_url}/batches/{batch_id}")
         if verbose:
@@ -42,16 +41,13 @@ class LivyService(BaseService):
             self._pretty_print(resp)
         return resp
 
-    def get_batch_logs(self, batch_id, verbose=False):
+    def get_batch_logs(self, batch_id, verbose=True):
         """Get the logs of a batch job."""
-        resp = requests.get(f"{self.base_url}/batches/{batch_id}/log?from=0&size=1")
-        total = resp.json()['total']
-        resp = requests.get(f"{self.base_url}/batches/{batch_id}/log?from=0&size={total}")
-        log = resp.json()['log']
+        resp = requests.get(f"{self.base_url}/batches/{batch_id}/log")
         if verbose:
             print(f"=== Logs of Batch {batch_id} ===")
             self._pretty_print(resp)
-        return ''.join(log)
+        return resp
 
     def kill_batch(self, batch_id, verbose=True):
         """Kill a batch job."""
