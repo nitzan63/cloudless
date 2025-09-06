@@ -15,7 +15,7 @@ class UserService:
             username VARCHAR(255) UNIQUE NOT NULL,
             password_hash VARCHAR(255) NOT NULL,
             type VARCHAR(20) NOT NULL CHECK (type IN ('provider', 'submitter')),
-            credits INTEGER DEFAULT 100,
+            credits INTEGER DEFAULT 1000,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
@@ -46,7 +46,7 @@ class UserService:
         user_id = self._hash_username(username)
         password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         query = "INSERT INTO users (id, username, password_hash, type, credits) VALUES (%s, %s, %s, %s, %s) RETURNING id;"
-        result = self.db.execute(query, (user_id, username, password_hash, user_type, 100))  # Start with 100 credits
+        result = self.db.execute(query, (user_id, username, password_hash, user_type, 1000))  # Start with 1000 credits
         return result[0][0] if result else None
 
     def get_user_by_username(self, username: str):

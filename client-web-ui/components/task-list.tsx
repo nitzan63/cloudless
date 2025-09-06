@@ -28,6 +28,11 @@ export default function TaskList({ initialTasks }: TaskListProps) {
   const router = useRouter()
   const { refreshCredits } = useAuth()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
+
+  // Update tasks when initialTasks prop changes (from polling)
+  useEffect(() => {
+    setTasks(initialTasks)
+  }, [initialTasks])
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [taskLogs, setTaskLogs] = useState<any>(null)
   const [loadingLogs, setLoadingLogs] = useState(false)

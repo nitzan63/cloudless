@@ -109,7 +109,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         id: userData.id,
         username: userData.username,
         type: userData.type,
-        credits: userData.credits || 100, // Default to 100 credits for new users, fallback for existing
+        credits: userData.credits || 1000, // Default to 100 credits for new users, fallback for existing
       };
 
       // Save to state and localStorage
