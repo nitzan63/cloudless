@@ -8,7 +8,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.append(str(project_root))
 
-SERVER_URL = "http://35.225.29.68:8000"
+SERVER_URL = "http://34.61.53.245:8000"
 
 def test_submit_wordcount_task():
     """
