@@ -117,7 +117,7 @@ services:
       - DATA_SERVICE_URL=http://data-service:8002
       - LIVY_URL=http://wireguard:8998
       - SPARK_UI_URL=http://10.10.0.1:8080
-      - INTERVAL_SECONDS=30
+      - INTERVAL_SECONDS=10
     depends_on:
       - data-service
       - wireguard

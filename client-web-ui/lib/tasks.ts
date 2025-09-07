@@ -21,6 +21,9 @@ export interface Task {
   requested_workers_amount?: number
   script_path?: string
   main_file_name?: string
+  cost?: number // Credits spent on this task
+  duration?: number // Task duration in milliseconds
+  executors?: string[] // List of executor IPs
 }
 
 // In a real application, this would be stored in a database

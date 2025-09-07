@@ -15,8 +15,12 @@ word_counts = (
 )
 
 # Collect and print results
+print("\n")
+print("--------------------------------")
+print("Word Count Results")
+print("--------------------------------")
 for word, count in word_counts.collect():
-    print(f"{word}: {count}")
+    print(f"{word}: {count}\n")
 
 time.sleep(20)
 

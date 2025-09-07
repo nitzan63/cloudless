@@ -1,6 +1,4 @@
 import keyring
-import tkinter as tk
-from tkinter import messagebox
 
 class SecretsService:
     def __init__(self, service_name="SecretsService", key_name="user_token"):

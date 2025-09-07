@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Rocket, Loader2, FileText, Upload, X, Check, HelpCircle } from "lucide-react"
+import { Rocket, Loader2, FileText, Upload, X, Check, HelpCircle, Coins } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,12 +11,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { toast } from "@/hooks/use-toast"
+import { useAuth } from "@/contexts/auth-context"
 import CodeEditor from "@/components/code-editor"
 import { apiClient } from "@/lib/api-client"
+import { CreditService } from "@/lib/credit-service"
 import ResourceRequirements from "./resource-requirements"
 
 export default function TaskForm() {
   const router = useRouter()
+  const { user, refreshCredits } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [validationStatus, setValidationStatus] = useState<'unvalidated' | 'valid' | 'invalid'>('unvalidated')
@@ -55,32 +58,59 @@ export default function TaskForm() {
       return
     }
 
-    if (!taskName) {
-      setValidationStatus('invalid')
-      setValidationErrors(['Please enter a task name before uploading a file'])
-      return
-    }
-
     setSelectedFile(file)
-    setValidationStatus('valid')
+    // Reset validation status when file changes
+    setValidationStatus('unvalidated')
     setValidationErrors([])
   }
 
   const handleValidateTask = async () => {
+    const errors: string[] = []
+
+    // Check if file is uploaded
     if (!selectedFile) {
+      errors.push('Please upload a Python file')
+    }
+
+    // Check if task name is provided
+    if (!taskName || taskName.trim() === '') {
+      errors.push('Please enter a task name')
+    }
+
+    // Check if task name contains only valid characters
+    if (taskName && !/^[a-zA-Z0-9_-]+$/.test(taskName)) {
+      errors.push('Task name can only contain letters, numbers, underscores (_), and hyphens (-)')
+    }
+
+    // Check if file content is not empty
+    if (selectedFile && fileContent.trim() === '') {
+      errors.push('Python file cannot be empty')
+    }
+
+    // Check if file content contains basic Python syntax
+    if (selectedFile && fileContent.trim() !== '') {
+      if (!fileContent.includes('def ') && !fileContent.includes('import ')) {
+        errors.push('File should contain Python code (functions or imports)')
+      }
+    }
+
+    if (errors.length > 0) {
+      setValidationStatus('invalid')
+      setValidationErrors(errors)
       toast({
-        title: "Error",
-        description: "Please upload a Python file",
+        title: "Validation Failed",
+        description: "Please fix the validation errors before proceeding.",
         variant: "destructive",
       })
       return
     }
 
+    // All validations passed
     setValidationStatus('valid')
     setValidationErrors([])
     toast({
-      title: "Success",
-      description: "Task validation successful! The script meets all requirements.",
+      title: "Validation Successful!",
+      description: "Your task meets all requirements and is ready to be launched!",
     })
   }
 
@@ -88,8 +118,32 @@ export default function TaskForm() {
     e.preventDefault()
     if (!selectedFile) return
 
+    // Check if user has enough credits
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to submit tasks",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if ((user.credits || 0) < 1) {
+      toast({
+        title: "Insufficient Credits",
+        description: "You need at least 1 credit to submit a task. Current balance: " + (user.credits || 0) + " credits",
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
       const fileContent = await selectedFile.text()
+      
+      // Set current user in API client
+      // User should already be set by auth context
+      
+      // First create the task
       const task = await apiClient.createTask({
         name: taskName,
         description: 'Spark task', // We can make this dynamic later
@@ -102,10 +156,12 @@ export default function TaskForm() {
         },
       })
 
+      // Task submitted - credits will be charged after completion based on actual usage
       toast({
-        title: "Success",
-        description: "Task created successfully!",
+        title: "Task Submitted Successfully!",
+        description: `Task "${taskName}" has been submitted. Credits will be charged after completion based on actual resource usage.`,
       })
+      
       router.push("/tasks")
       router.refresh()
     } catch (error) {
@@ -237,6 +293,22 @@ export default function TaskForm() {
               )}
             </div>
           </div>
+
+          {/* Credit Cost Display */}
+          {validationStatus === 'valid' && (
+            <div className="mb-4 p-3 bg-muted/50 rounded-lg border border-border">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Coins className="h-4 w-4 text-yellow-500" />
+                  <span className="text-sm font-medium text-foreground">Task Cost:</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-muted-foreground">Charged after completion based on usage</span>
+                  <span className="text-xs text-muted-foreground">(Current: {user?.credits || 0})</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           <Button 
             type="submit" 

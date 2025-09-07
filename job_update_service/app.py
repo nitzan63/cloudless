@@ -1,5 +1,6 @@
 import os
 import logging
+import math
 import requests
 import re
 from apscheduler.schedulers.blocking import BlockingScheduler
@@ -52,8 +53,15 @@ def get_metadata(app_id):
     if result == None:
         print(f"Can't get metadata of {app_id}")
         return {}
+    
+    duration = result['duration']
+    executors = get_executors(app_id)
+    cost = calculate_task_cost(duration)
+    
     return {
-        "duration": result['duration']
+        "duration": duration,
+        "cost": cost,
+        "executors": executors
     }
 
 def get_executors(app_id):
@@ -78,14 +86,56 @@ def get_executors(app_id):
         return []
 
 
+def calculate_task_cost(duration_ms):
+    """Calculate task cost based on duration - same as provider credits"""
+    return max(1, math.ceil(duration_ms / 1000))
+
 def give_credits_to_providers(executors, duration):
     try:
         ips = [exec.split("-")[-2] for exec in executors]
-        credits_per_provider = duration / len(executors)
+        # Normalize: duration in ms -> seconds, round up, ensure minimum 1 credit per worker
+        credits_per_provider = max(1, math.ceil(duration / 1000) // len(executors))
         provider_service.add_credits(ips, credits_per_provider)
         return True
     except Exception as e:
         logging.error(f"Failed to add credits: {str(e)}")
+        return False
+
+def charge_user_for_task(task_id, duration_ms, executor_count):
+    """Charge user for completed task based on actual usage"""
+    try:
+        # Get task details to find creator
+        task_details = task_service.get_task(task_id)
+        if not task_details or 'created_by' not in task_details:
+            logging.error(f"Could not get task details for {task_id}")
+            return False
+        
+        user_id = task_details['created_by']
+        task_cost = calculate_task_cost(duration_ms)
+        
+        # Validate task cost
+        if task_cost <= 0:
+            logging.error(f"Invalid task cost calculated: {task_cost} for task {task_id}")
+            return False
+        
+        # Charge the user
+        credit_service_url = os.environ.get('DATA_SERVICE_URL', 'http://localhost:8002')
+        response = requests.post(f"{credit_service_url}/credits/spend", json={
+            "userId": user_id,
+            "amount": task_cost,
+            "taskId": task_id,
+            "description": f"Task execution cost: {task_cost} credits (duration: {duration_ms}ms, executors: {executor_count})"
+        })
+        
+        if response.status_code == 200:
+            logging.info(f"Charged user {user_id} {task_cost} credits for task {task_id}")
+            return True
+        else:
+            logging.error(f"Failed to charge user {user_id}: {response.text}")
+            return False
+            
+    except Exception as e:
+        logging.error(f"Failed to charge user for task {task_id}: {str(e)}")
         return False
 
 def update_task_status(task_id, new_status, logs, app_id, executors, given_credits, metadata):
@@ -122,8 +172,17 @@ def job():
             metadata = get_metadata(app_id)
             if 'duration' not in metadata:
                 given_credits = False
+                charged_user = False
             else:
+                # Give credits to providers
                 given_credits = give_credits_to_providers(executors, metadata['duration'])
+                
+                # Charge user for completed tasks only
+                if db_status == 'completed' and given_credits:
+                    charged_user = charge_user_for_task(task_id, metadata['duration'], len(executors))
+                else:
+                    charged_user = False
+                    
             update_task_status(task_id, db_status, logs, app_id, executors, given_credits, metadata)
 
 if __name__ == '__main__':

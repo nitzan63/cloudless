@@ -17,6 +17,7 @@ interface User {
   id: string;
   username: string;
   type: "provider" | "submitter";
+  credits?: number; // Optional for backward compatibility
 }
 
 interface AuthContextType {
@@ -30,6 +31,7 @@ interface AuthContextType {
     type: "provider" | "submitter"
   ) => Promise<void>;
   logout: () => void;
+  refreshCredits: () => Promise<void>;
   loading: boolean;
 }
 
@@ -59,8 +61,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     if (savedToken && savedUser) {
       try {
+        const userData = JSON.parse(savedUser);
         setToken(savedToken);
-        setUser(JSON.parse(savedUser));
+        setUser(userData);
+        // Set current user in API client when restoring from localStorage
+        apiClient.setCurrentUser(userData.username);
       } catch (error) {
         console.error("Error parsing saved user data:", error);
         localStorage.removeItem("token");
@@ -104,6 +109,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         id: userData.id,
         username: userData.username,
         type: userData.type,
+        credits: userData.credits || 1000, // Default to 100 credits for new users, fallback for existing
       };
 
       // Save to state and localStorage
@@ -163,6 +169,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     apiClient.setCurrentUser("");
   };
 
+  const refreshCredits = async () => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch(`${NEXT_PUBLIC_USER_SERVICE_URL}/users/${user.username}`);
+      if (response.ok) {
+        const userData = await response.json();
+        const updatedUser = { ...user, credits: userData.credits || user.credits || 100 };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+    } catch (error) {
+      console.error('Failed to refresh credits:', error);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     token,
@@ -170,6 +192,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     register,
     logout,
+    refreshCredits,
     loading,
   };
 

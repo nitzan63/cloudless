@@ -51,7 +51,7 @@ class LivyService(BaseService):
         if verbose:
             print(f"=== Logs of Batch {batch_id} ===")
             self._pretty_print(resp)
-        return ''.join(log)
+        return '\n'.join(log)
 
     def kill_batch(self, batch_id, verbose=True):
         """Kill a batch job."""
