@@ -263,7 +263,7 @@ export default function TaskList({ initialTasks }: TaskListProps) {
                           <h4 className="font-medium">Execution Logs</h4>
                           <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm max-h-96 overflow-y-auto">
                             <pre className="whitespace-pre-wrap">
-                              {JSON.stringify(taskLogs.logs, null, 2)}
+                              {taskLogs.logs}
                             </pre>
                           </div>
                         </div>
