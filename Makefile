@@ -72,7 +72,7 @@ remove-none-docker-images:
 	for /f "tokens=*" %i in ('docker images -f "dangling=true" -q') do docker rmi %i
 
 package-provider-gui:
-	cd ./provider/provider-gui && venv\Scripts\activate &&o have a lo
+	cd ./provider/provider-gui && venv\Scripts\activate && pyinstaller --noconfirm --windowed app.py
 
 convert-crlf-lf:
 	powershell -Command "(Get-Content wireguard\entrypoint.sh) -join \"`n\" | Set-Content wireguard\entrypoint.sh -NoNewline"
