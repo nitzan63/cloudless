@@ -207,11 +207,6 @@ export default function TaskList({ initialTasks }: TaskListProps) {
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Workers:</span>
-                    <span>{task.requested_workers_amount}</span>
-                  </div>
-
-                  <div className="flex justify-between">
                     <span className="text-muted-foreground">File:</span>
                     <span className="truncate max-w-[200px]" title={task.main_file_name}>
                       {task.main_file_name}
@@ -225,6 +220,18 @@ export default function TaskList({ initialTasks }: TaskListProps) {
                         ? `${task.cost} credits`
                         : task.status === 'failed' 
                         ? 'No charge'
+                        : 'Not available yet'
+                      }
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Executors:</span>
+                    <span className="font-medium">
+                      {task.status === 'completed' && task.executors !== undefined 
+                        ? `${task.executors.length}`
+                        : task.status === 'failed' 
+                        ? '0'
                         : 'Not available yet'
                       }
                     </span>
