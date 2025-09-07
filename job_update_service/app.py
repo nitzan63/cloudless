@@ -56,7 +56,7 @@ def get_metadata(app_id):
     
     duration = result['duration']
     executors = get_executors(app_id)
-    cost = calculate_task_cost(duration, len(executors))
+    cost = calculate_task_cost(duration)
     
     return {
         "duration": duration,
@@ -86,9 +86,9 @@ def get_executors(app_id):
         return []
 
 
-def calculate_task_cost(duration_ms, executor_count):
+def calculate_task_cost(duration_ms):
     """Calculate task cost based on duration - same as provider credits"""
-    return max(1, math.ceil(duration_ms / 1000) // executor_count)
+    return max(1, math.ceil(duration_ms / 1000))
 
 def give_credits_to_providers(executors, duration):
     try:
@@ -111,7 +111,7 @@ def charge_user_for_task(task_id, duration_ms, executor_count):
             return False
         
         user_id = task_details['created_by']
-        task_cost = calculate_task_cost(duration_ms, executor_count)
+        task_cost = calculate_task_cost(duration_ms)
         
         # Validate task cost
         if task_cost <= 0:
